@@ -1,1 +1,1 @@
-# jbi100-visualization-group78-
+# JBI100 Visualization | Group 78
