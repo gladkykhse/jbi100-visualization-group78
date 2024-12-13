@@ -7,9 +7,9 @@ from src.data import data, prepare_map_data
 from src.layouts import main_layout
 from src.visualizations import (create_choropleth, create_histogram)
 
-server = Flask(__name__)
+application = Flask(__name__)
 
-app = dash.Dash(__name__, server=server)
+app = dash.Dash(__name__, server=application)
 app.layout = main_layout
 
 
@@ -51,4 +51,4 @@ def update_content(tab_name, start_date, end_date, selected_feature):
 
 
 if __name__ == "__main__":
-    server.run(debug=True)
+    application.run(debug=True)

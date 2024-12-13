@@ -1,3 +1,9 @@
 Work-related\ Injury\ and\ Illness/
 .ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
 
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
