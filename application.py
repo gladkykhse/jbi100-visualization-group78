@@ -1,12 +1,15 @@
 import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
+from flask import Flask
 
 from src.data import data, prepare_map_data
 from src.layouts import main_layout
 from src.visualizations import (create_choropleth, create_histogram)
 
-app = dash.Dash(__name__, suppress_callback_exceptions=True)
+server = Flask(__name__)
+
+app = dash.Dash(__name__, server=server)
 app.layout = main_layout
 
 
@@ -47,6 +50,5 @@ def update_content(tab_name, start_date, end_date, selected_feature):
     return html.Div("No content available for this tab.")
 
 
-# Run the app
 if __name__ == "__main__":
-    app.run_server(debug=True, port=8050)
+    server.run(debug=True)
