@@ -195,4 +195,4 @@ def update_tab_contents(
 
 
 if __name__ == "__main__":
-    application.run(debug=True, port=5053)
+    application.run(debug=True)
