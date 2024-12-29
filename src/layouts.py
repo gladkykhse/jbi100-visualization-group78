@@ -47,7 +47,13 @@ main_layout = html.Div(
                                     options=[
                                         {"label": "Incident Rate per 100k Hours Worked", "value": "incident_rate"},
                                         {"label": "Fatality Rate per 100k Hours Worked", "value": "fatality_rate"},
+                                        {
+                                            "label": "Lost Workday Rate per 100,000 Hours Worked",
+                                            "value": "lost_workday_rate",
+                                        },
+                                        {"label": "Severity Index", "value": "severity_index"},
                                         {"label": "Death-to-Incident Ratio", "value": "death_to_incident"},
+                                        {"label": "Aggregated Safety Score", "value": "safety_score"},
                                     ],
                                     value="incident_rate",
                                     placeholder="Select KPI",

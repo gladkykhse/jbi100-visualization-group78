@@ -101,7 +101,7 @@ def update_tab_contents(
     state_analysis_content = html.Div()
     metric_analysis_content = html.Div()
 
-    if tab_name == "state_analysis_tab" and start_date and end_date:
+    if tab_name == "state_analysis_tab" and start_date and end_date and kpi and time_period:
         state_df = prepare_state_data(start_date, end_date, incident_types, time_period, kpi)
         if not state_df.empty:
             state_analysis_content = html.Div(
