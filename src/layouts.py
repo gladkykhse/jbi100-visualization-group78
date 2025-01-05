@@ -1,9 +1,16 @@
 from dash import dcc, html
 
 from src.data import data, incident_types, state_codes
+from src.mappings import dropdown_options, state_map
 
 main_layout = html.Div(
-    style={"display": "flex", "flexDirection": "column", "height": "100vh", "margin": "0", "padding": "0"},
+    style={
+        "display": "flex",
+        "flexDirection": "column",
+        "height": "100vh",
+        "margin": "0",
+        "padding": "0",
+    },
     children=[
         # Menu bar at the top
         dcc.Store(id="selected_state", storage_type="memory"),
@@ -17,7 +24,10 @@ main_layout = html.Div(
                 "boxSizing": "border-box",
             },
             children=[
-                html.H2("Work-related injuries dashboard", style={"margin": "0", "fontSize": "1.5em"}),
+                html.H2(
+                    "Work-related injuries dashboard",
+                    style={"margin": "0", "fontSize": "1.5em"},
+                ),
             ],
         ),
         # Dropdown and content area
@@ -44,19 +54,10 @@ main_layout = html.Div(
                                 html.H4("Select KPI", style={"marginBottom": "5%"}),
                                 dcc.Dropdown(
                                     id="kpi-select-dropdown",
-                                    options=[
-                                        {"label": "Incident Rate per 100k Hours Worked", "value": "incident_rate"},
-                                        {"label": "Fatality Rate per 100k Hours Worked", "value": "fatality_rate"},
-                                        {
-                                            "label": "Lost Workday Rate per 100,000 Hours Worked",
-                                            "value": "lost_workday_rate",
-                                        },
-                                        {"label": "Severity Index", "value": "severity_index"},
-                                        {"label": "Death-to-Incident Ratio", "value": "death_to_incident"},
-                                        {"label": "Aggregated Safety Score", "value": "safety_score"},
-                                    ],
+                                    options=dropdown_options,
                                     value="incident_rate",
                                     placeholder="Select KPI",
+                                    optionHeight=50,
                                     style={"width": "100%"},
                                 ),
                             ],
@@ -64,7 +65,9 @@ main_layout = html.Div(
                         html.Div(
                             id="date-picker-container",
                             children=[
-                                html.H4("Select Date Range", style={"marginBottom": "5%"}),
+                                html.H4(
+                                    "Select Date Range", style={"marginBottom": "5%"}
+                                ),
                                 dcc.DatePickerRange(
                                     id="date-picker-range",
                                     start_date=data["date_of_incident"].min(),
@@ -77,10 +80,16 @@ main_layout = html.Div(
                         html.Div(
                             id="incident-filter-container",
                             children=[
-                                html.H4("Filter by Incident Type", style={"marginBottom": "5%"}),
+                                html.H4(
+                                    "Filter by Incident Type",
+                                    style={"marginBottom": "5%"},
+                                ),
                                 dcc.Dropdown(
                                     id="incident-filter-dropdown",
-                                    options=[{"label": cat_value, "value": cat_value} for cat_value in incident_types],
+                                    options=[
+                                        {"label": cat_value, "value": cat_value}
+                                        for cat_value in incident_types
+                                    ],
                                     placeholder="Select one or more categories",
                                     multi=True,
                                     clearable=True,
@@ -91,13 +100,18 @@ main_layout = html.Div(
                         html.Div(
                             id="time-period-container",
                             children=[
-                                html.H4("Select Time Period", style={"marginBottom": "5%"}),
+                                html.H4(
+                                    "Select Time Period", style={"marginBottom": "5%"}
+                                ),
                                 dcc.Dropdown(
                                     id="time-period-dropdown",
                                     options=[
                                         {"label": "Year", "value": "incident_year"},
                                         {"label": "Month", "value": "incident_month"},
-                                        {"label": "Weekday", "value": "incident_weekday"},
+                                        {
+                                            "label": "Weekday",
+                                            "value": "incident_weekday",
+                                        },
                                     ],
                                     value="incident_year",
                                     placeholder="Select time period",
@@ -111,7 +125,7 @@ main_layout = html.Div(
                                 html.H4("Select State", style={"marginBottom": "5%"}),
                                 dcc.Dropdown(
                                     id="state-dropdown",
-                                    options=[{"label": state_code, "value": state_code} for state_code in state_codes],
+                                    options=state_map,
                                     value=state_codes[0],
                                     placeholder="Select State",
                                     style={"width": "100%"},
@@ -132,7 +146,10 @@ main_layout = html.Div(
                                     label="State Analysis",
                                     value="state_analysis_tab",
                                     children=[
-                                        html.Div(id="content", style={"width": "100%", "height": "100%"}),
+                                        html.Div(
+                                            id="content",
+                                            style={"width": "100%", "height": "100%"},
+                                        ),
                                     ],
                                 ),
                                 dcc.Tab(

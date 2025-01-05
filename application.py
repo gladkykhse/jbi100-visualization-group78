@@ -35,7 +35,13 @@ def update_left_menu_visibility(tab_name):
             {"display": "none"},
         )
     elif tab_name == "metric_analysis_tab":
-        return {"display": "none"}, {"display": "none"}, {"display": "none"}, {"display": "none"}, {"display": "block"}
+        return (
+            {"display": "none"},
+            {"display": "none"},
+            {"display": "none"},
+            {"display": "none"},
+            {"display": "block"},
+        )
     return {"display": "none"}, {"display": "none"}
 
 
@@ -57,20 +63,34 @@ def update_bar_charts(click_data, state_code):
         selected_kpi = click_data["points"][0]["theta"].lower().replace(" ", "_")
 
     size_data = prepare_bar_chart_data(state_code, "size", selected_kpi)
-    establishment_type_data = prepare_bar_chart_data(state_code, "establishment_type", selected_kpi)
-    soc_description_1_data = prepare_bar_chart_data(state_code, "soc_description_1", selected_kpi)
-    type_of_incident_data = prepare_bar_chart_data(state_code, "type_of_incident", selected_kpi)
+    establishment_type_data = prepare_bar_chart_data(
+        state_code, "establishment_type", selected_kpi
+    )
+    soc_description_1_data = prepare_bar_chart_data(
+        state_code, "soc_description_1", selected_kpi
+    )
+    type_of_incident_data = prepare_bar_chart_data(
+        state_code, "type_of_incident", selected_kpi
+    )
 
     return (
         create_grouped_bar_chart(size_data, "size", selected_kpi),
-        create_grouped_bar_chart(establishment_type_data, "establishment_type", selected_kpi),
-        create_grouped_bar_chart(soc_description_1_data, "soc_description_1", selected_kpi),
-        create_grouped_bar_chart(type_of_incident_data, "type_of_incident", selected_kpi),
+        create_grouped_bar_chart(
+            establishment_type_data, "establishment_type", selected_kpi
+        ),
+        create_grouped_bar_chart(
+            soc_description_1_data, "soc_description_1", selected_kpi
+        ),
+        create_grouped_bar_chart(
+            type_of_incident_data, "type_of_incident", selected_kpi
+        ),
     )
 
 
 @app.callback(
-    Output("selected_state", "data"), [Input("map-container", "clickData")], [State("selected_state", "data")]
+    Output("selected_state", "data"),
+    [Input("map-container", "clickData")],
+    [State("selected_state", "data")],
 )
 def update_selected_state(click_data, current_state):
     if click_data:
@@ -96,100 +116,151 @@ def update_selected_state(click_data, current_state):
     ],
 )
 def update_tab_contents(
-    tab_name, start_date, end_date, incident_types, kpi, time_period, selected_state, dropdown_state
+    tab_name,
+    start_date,
+    end_date,
+    incident_types,
+    kpi,
+    time_period,
+    selected_state,
+    dropdown_state,
 ):
     state_analysis_content = html.Div()
     metric_analysis_content = html.Div()
 
-    if tab_name == "state_analysis_tab" and start_date and end_date and kpi and time_period:
-        state_df = prepare_state_data(start_date, end_date, incident_types, time_period, kpi)
+    if (
+        tab_name == "state_analysis_tab"
+        and start_date
+        and end_date
+        and kpi
+        and time_period
+    ):
+        state_df = prepare_state_data(
+            start_date, end_date, incident_types, time_period, kpi
+        )
         if not state_df.empty:
             state_analysis_content = html.Div(
-                style={"display": "flex", "justifyContent": "space-between", "padding": "10px"},
+                style={
+                    "display": "flex",
+                    "justifyContent": "space-between",
+                    "flexDirection": "column",
+                    "padding": "10px",
+                },
                 children=[
                     html.Div(
-                        dcc.Graph(figure=create_map(state_df, kpi, selected_state), id="map-container"),
-                        style={"flex": "1", "height": "500px", "marginRight": "10px"},
+                        dcc.Graph(
+                            figure=create_map(state_df, kpi, selected_state),
+                            id="map-container",
+                        ),
+                        style={"flex": "1", "height": "500px"},
                     ),
                     html.Div(
-                        dcc.Graph(figure=create_timeline(state_df, time_period, kpi, selected_state)),
+                        dcc.Graph(
+                            figure=create_timeline(
+                                state_df, time_period, kpi, selected_state
+                            )
+                        ),
                         style={"flex": "1", "height": "500px"},
                     ),
                 ],
             )
         else:
-            state_analysis_content = html.Div("No data for selected date range.")
+            state_analysis_content = html.Div(
+                html.H2("No data for selected date range.", style="margin: 1em 2em")
+            )
 
     if tab_name == "metric_analysis_tab" and dropdown_state:
         radar_chart_data = prepare_radar_data(dropdown_state)
 
         if not radar_chart_data.empty:
             size_data = prepare_bar_chart_data(dropdown_state, "size", "incident_rate")
-            establishment_type_data = prepare_bar_chart_data(dropdown_state, "establishment_type", "incident_rate")
-            soc_description_1_data = prepare_bar_chart_data(dropdown_state, "soc_description_1", "incident_rate")
-            type_of_incident_data = prepare_bar_chart_data(dropdown_state, "type_of_incident", "incident_rate")
+            establishment_type_data = prepare_bar_chart_data(
+                dropdown_state, "establishment_type", "incident_rate"
+            )
+            soc_description_1_data = prepare_bar_chart_data(
+                dropdown_state, "soc_description_1", "incident_rate"
+            )
+            type_of_incident_data = prepare_bar_chart_data(
+                dropdown_state, "type_of_incident", "incident_rate"
+            )
 
             metric_analysis_content = html.Div(
                 style={
                     "display": "flex",
-                    "padding": "10px",
-                    "height": "85vh",  # Reduce total height of the content area
+                    "alignContent": "center",
+                    "justifyContent": "center",
+                    "flexDirection": "column",
+                    "padding": "1rem",
                 },
                 children=[
                     # Radar chart
                     html.Div(
-                        style={"width": "33%", "paddingRight": "10px", "height": "100%"},
+                        style={
+                            "width": "100%",
+                            "paddingRight": "10px",
+                            "height": "500px",
+                        },
                         children=[
                             dcc.Graph(
-                                figure=create_radar_chart(radar_chart_data),
+                                figure=create_radar_chart(
+                                    radar_chart_data, dropdown_state
+                                ),
                                 id="radar-chart",
-                                style={"height": "90%"},  # Reduce height of the radar chart
                             ),
                         ],
                     ),
                     # Bar charts
                     html.Div(
                         style={
-                            "width": "67%",
                             "display": "grid",
                             "gridTemplateColumns": "1fr 1fr",
                             "gridTemplateRows": "1fr 1fr",  # Equal rows for bar charts
-                            "gap": "10px",  # Add spacing between graphs
-                            "height": "100%",
+                            "gap": "1em",  # Add spacing between graphs
+                            "minHeight": "1000px",  # Set minimum height for the grid
                         },
                         children=[
                             dcc.Graph(
-                                figure=create_grouped_bar_chart(size_data, "size", "incident_rate"),
+                                figure=create_grouped_bar_chart(
+                                    size_data, "size", "incident_rate"
+                                ),
                                 id="bar-chart-size",
-                                style={"height": "90%"},  # Adjust height of individual charts
                             ),
                             dcc.Graph(
                                 figure=create_grouped_bar_chart(
-                                    establishment_type_data, "establishment_type", "incident_rate"
+                                    establishment_type_data,
+                                    "establishment_type",
+                                    "incident_rate",
                                 ),
                                 id="bar-chart-sector",
-                                style={"height": "90%"},  # Adjust height of individual charts
                             ),
                             dcc.Graph(
                                 figure=create_grouped_bar_chart(
-                                    soc_description_1_data, "soc_description_1", "incident_rate"
+                                    soc_description_1_data,
+                                    "soc_description_1",
+                                    "incident_rate",
                                 ),
                                 id="bar-chart-industry",
-                                style={"height": "90%"},  # Adjust height of individual charts
                             ),
+                            # dcc.Graph(
+                            #     figure=create_treemap(treemap_data, "incident_rate"),
+                            #     id="treemap-chart"
+                            # ),
                             dcc.Graph(
                                 figure=create_grouped_bar_chart(
-                                    type_of_incident_data, "type_of_incident", "incident_rate"
+                                    type_of_incident_data,
+                                    "type_of_incident",
+                                    "incident_rate",
                                 ),
                                 id="bar-chart-soc",
-                                style={"height": "90%"},  # Adjust height of individual charts
                             ),
                         ],
                     ),
                 ],
             )
         else:
-            metric_analysis_content = html.Div("No data available for the selected feature.")
+            metric_analysis_content = html.Div(
+                "No data available for the selected feature."
+            )
 
     return state_analysis_content, metric_analysis_content
 
