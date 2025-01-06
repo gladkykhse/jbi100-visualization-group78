@@ -54,6 +54,19 @@ main_layout = html.Div(
                     },
                     children=[
                         html.Div(
+                            id="state-dropdown-container",
+                            children=[
+                                html.H4("Select State", style={"marginBottom": "5%"}),
+                                dcc.Dropdown(
+                                    id="state-dropdown",
+                                    options=state_map,
+                                    value=state_codes[0],
+                                    placeholder="Select State",
+                                    style={"width": "100%"},
+                                ),
+                            ],
+                        ),
+                        html.Div(
                             id="kpi-select-container",
                             children=[
                                 html.H4("Select KPI", style={"marginBottom": "5%"}),
@@ -113,19 +126,6 @@ main_layout = html.Div(
                                     ],
                                     value="incident_year",
                                     placeholder="Select time period",
-                                    style={"width": "100%"},
-                                ),
-                            ],
-                        ),
-                        html.Div(
-                            id="state-dropdown-container",
-                            children=[
-                                html.H4("Select State", style={"marginBottom": "5%"}),
-                                dcc.Dropdown(
-                                    id="state-dropdown",
-                                    options=state_map,
-                                    value=state_codes[0],
-                                    placeholder="Select State",
                                     style={"width": "100%"},
                                 ),
                             ],

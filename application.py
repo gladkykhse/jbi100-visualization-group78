@@ -36,8 +36,8 @@ def update_left_menu_visibility(tab_name):
         )
     elif tab_name == "metric_analysis_tab":
         return (
-            {"display": "none"},
-            {"display": "none"},
+            {"display": "block"},
+            {"display": "block"},
             {"display": "none"},
             {"display": "none"},
             {"display": "block"},
@@ -55,17 +55,20 @@ def update_left_menu_visibility(tab_name):
     [
         Input("radar-chart", "clickData"),
         Input("state-dropdown", "value"),
+        Input("date-picker-range", "start_date"),
+        Input("date-picker-range", "end_date"),
+        Input("incident-filter-dropdown", "value"),
     ],
 )
-def update_bar_charts(click_data, state_code):
+def update_bar_charts(click_data, state_code, start_date, end_date, incident_types):
     selected_kpi = "incident_rate"
     if click_data and "points" in click_data:
         selected_kpi = click_data["points"][0]["theta"].lower().replace(" ", "_")
 
-    size_data = prepare_bar_chart_data(state_code, "size", selected_kpi)
-    establishment_type_data = prepare_bar_chart_data(state_code, "establishment_type", selected_kpi)
-    soc_description_1_data = prepare_bar_chart_data(state_code, "soc_description_1", selected_kpi)
-    type_of_incident_data = prepare_bar_chart_data(state_code, "type_of_incident", selected_kpi)
+    size_data = prepare_bar_chart_data(state_code, "size", selected_kpi, start_date, end_date, incident_types)
+    establishment_type_data = prepare_bar_chart_data(state_code, "establishment_type", selected_kpi, start_date, end_date, incident_types)
+    soc_description_1_data = prepare_bar_chart_data(state_code, "soc_description_1", selected_kpi, start_date, end_date, incident_types)
+    type_of_incident_data = prepare_bar_chart_data(state_code, "type_of_incident", selected_kpi, start_date, end_date, incident_types)
 
     return (
         create_grouped_bar_chart(size_data, "size", selected_kpi),
@@ -143,14 +146,14 @@ def update_tab_contents(
         else:
             state_analysis_content = html.Div(html.H2("No data for selected date range.", style="margin: 1em 2em"))
 
-    if tab_name == "metric_analysis_tab" and dropdown_state:
-        radar_chart_data = prepare_radar_data(dropdown_state)
+    if tab_name == "metric_analysis_tab" and dropdown_state and start_date and end_date:
+        radar_chart_data = prepare_radar_data(dropdown_state, start_date, end_date, incident_types)
 
         if not radar_chart_data.empty:
-            size_data = prepare_bar_chart_data(dropdown_state, "size", "incident_rate")
-            establishment_type_data = prepare_bar_chart_data(dropdown_state, "establishment_type", "incident_rate")
-            soc_description_1_data = prepare_bar_chart_data(dropdown_state, "soc_description_1", "incident_rate")
-            type_of_incident_data = prepare_bar_chart_data(dropdown_state, "type_of_incident", "incident_rate")
+            size_data = prepare_bar_chart_data(dropdown_state, "size", "incident_rate", start_date, end_date, incident_types)
+            establishment_type_data = prepare_bar_chart_data(dropdown_state, "establishment_type", "incident_rate", start_date, end_date, incident_types)
+            soc_description_1_data = prepare_bar_chart_data(dropdown_state, "soc_description_1", "incident_rate", start_date, end_date, incident_types)
+            type_of_incident_data = prepare_bar_chart_data(dropdown_state, "type_of_incident", "incident_rate", start_date, end_date, incident_types)
 
             metric_analysis_content = html.Div(
                 style={

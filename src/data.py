@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from datetime import datetime
+
 
 data = pd.read_parquet("datasets/processed_data.parquet")
 data["incident_year"] = data["date_of_incident"].dt.year
@@ -191,19 +193,57 @@ mean_metric_values = {
 }
 
 
-def prepare_radar_data(state_code):
-    incident_rate = region_incident_rates[region_incident_rates["state_code"] == state_code]["incident_rate"].values[0]
-    fatality_rate = region_fatality_rates[region_fatality_rates["state_code"] == state_code]["fatality_rate"].values[0]
-    lost_workday_rate = region_lost_workday_rate[region_lost_workday_rate["state_code"] == state_code][
+def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
+    start_date = datetime.fromisoformat(start_date)
+    end_date = datetime.fromisoformat(end_date)
+    if start_date == data["date_of_incident"].min() and end_date == data["date_of_incident"].max() and not filter_incident_types:
+        radar_region_incident_rates = region_incident_rates
+        radar_region_fatality_rates = region_fatality_rates
+        radar_region_lost_workday_rate = region_lost_workday_rate
+        radar_region_severity_index = region_severity_index
+        radar_region_death_to_incident = region_death_to_incident
+        radar_region_safety_score = region_safety_score
+    elif start_date == data["date_of_incident"].min() and end_date == data["date_of_incident"].max():
+        filtered_data = data[data["type_of_incident"].isin(filter_incident_types)]
+
+        radar_region_incident_rates = compute_agg_incident_rate_per_100k(filtered_data)
+        radar_region_fatality_rates = compute_agg_fatality_rate_per_100k(filtered_data)
+        radar_region_lost_workday_rate = compute_agg_lost_workday_rate(filtered_data)
+        radar_region_severity_index = compute_agg_severity_index(filtered_data)
+        radar_region_death_to_incident = compute_death_to_incident_ratio(filtered_data)
+        radar_region_safety_score = compute_agg_safety_score(filtered_data)
+    elif not filter_incident_types:
+        filtered_data = data[(data["date_of_incident"] >= start_date) & (data["date_of_incident"] <= end_date)]
+
+        radar_region_incident_rates = compute_agg_incident_rate_per_100k(filtered_data)
+        radar_region_fatality_rates = compute_agg_fatality_rate_per_100k(filtered_data)
+        radar_region_lost_workday_rate = compute_agg_lost_workday_rate(filtered_data)
+        radar_region_severity_index = compute_agg_severity_index(filtered_data)
+        radar_region_death_to_incident = compute_death_to_incident_ratio(filtered_data)
+        radar_region_safety_score = compute_agg_safety_score(filtered_data)
+    else:
+        filtered_data = data[(data["date_of_incident"] >= start_date) & (data["date_of_incident"] <= end_date)]
+        filtered_data = filtered_data[filtered_data["type_of_incident"].isin(filter_incident_types)]
+
+        radar_region_incident_rates = compute_agg_incident_rate_per_100k(filtered_data)
+        radar_region_fatality_rates = compute_agg_fatality_rate_per_100k(filtered_data)
+        radar_region_lost_workday_rate = compute_agg_lost_workday_rate(filtered_data)
+        radar_region_severity_index = compute_agg_severity_index(filtered_data)
+        radar_region_death_to_incident = compute_death_to_incident_ratio(filtered_data)
+        radar_region_safety_score = compute_agg_safety_score(filtered_data)
+
+    incident_rate = radar_region_incident_rates[radar_region_incident_rates["state_code"] == state_code]["incident_rate"].values[0]
+    fatality_rate = radar_region_fatality_rates[radar_region_fatality_rates["state_code"] == state_code]["fatality_rate"].values[0]
+    lost_workday_rate = radar_region_lost_workday_rate[radar_region_lost_workday_rate["state_code"] == state_code][
         "lost_workday_rate"
     ].values[0]
-    severity_index = region_severity_index[region_severity_index["state_code"] == state_code]["severity_index"].values[
+    severity_index = radar_region_severity_index[radar_region_severity_index["state_code"] == state_code]["severity_index"].values[
         0
     ]
-    death_to_incident = region_death_to_incident[region_death_to_incident["state_code"] == state_code][
+    death_to_incident = radar_region_death_to_incident[radar_region_death_to_incident["state_code"] == state_code][
         "death_to_incident"
     ].values[0]
-    safety_score = region_safety_score[region_safety_score["state_code"] == state_code]["safety_score"].values[0]
+    safety_score = radar_region_safety_score[radar_region_safety_score["state_code"] == state_code]["safety_score"].values[0]
 
     radar_data = {
         "kpi": [
@@ -273,8 +313,11 @@ def prepare_state_data(
     return map_data, timeline_data
 
 
-def prepare_bar_chart_data(state_code, feature, kpi):
+def prepare_bar_chart_data(state_code, feature, kpi, start_date, end_date, filter_incident_types):
     temp = data[data["state_code"] == state_code]
+    temp = temp[(temp["date_of_incident"] >= start_date) & (temp["date_of_incident"] <= end_date)]
+    if filter_incident_types:
+        temp = temp[temp["type_of_incident"].isin(filter_incident_types)]
 
     if kpi == "incident_rate":
         temp = compute_agg_incident_rate_per_100k(temp, feature)
