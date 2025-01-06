@@ -1,5 +1,6 @@
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.colors import diverging
 
 from src.mappings import dropdown_options, state_map
 
@@ -68,10 +69,10 @@ def create_map(df, kpi="incident_rate", selected_state=None):
         data=go.Choropleth(
             locations=df["state_code"],
             z=df[kpi],
-            zmin=0,  # Set the minimum value to 0 to avoid issues with the color scale
+            zmin=0,
             locationmode="USA-states",
             colorscale="RdYlBu",
-            reversescale=True,  
+            reversescale=True,
             autocolorscale=False,
             marker_line_color=border_color,  # Default boundary lines
             colorbar=dict(title=dict(text=kpi_name)),
@@ -92,11 +93,16 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                     z=selected_row[kpi],  # Use the same KPI for consistency
                     zmin=0,  # Set the minimum value to 0 to avoid issues with the color scale
                     locationmode="USA-states",
-                    colorscale=[[0, "rgba(255, 0, 0, 0.2)"], [1, "rgba(255, 0, 0, 0.6)"]],
+                    colorscale=[
+                        [0, "rgba(255, 0, 0, 0.2)"],
+                        [1, "rgba(255, 0, 0, 0.6)"],
+                    ],
                     autocolorscale=False,
                     marker_line_color="red",  # Red border for the selected state
                     marker_line_width=2,  # Thicker border
-                    text=df["state_code"].map(state_map),  # Add state names to the hover info
+                    text=df["state_code"].map(
+                        state_map
+                    ),  # Add state names to the hover info
                     hoverinfo="text+z",  # Include hover info
                     showscale=False,  # No color scale for the highlight layer
                 )
@@ -131,7 +137,9 @@ def create_histogram(filtered_df, feature):
     return fig
 
 
-def create_timeline(df, period_column="incident_month", kpi="incident_rate", selected_state=None):
+def create_timeline(
+    df, period_column="incident_month", kpi="incident_rate", selected_state=None
+):
     # Define mappings for months and weekdays
     month_labels = {
         1: "January",
@@ -224,5 +232,28 @@ def create_timeline(df, period_column="incident_month", kpi="incident_rate", sel
     return fig
 
 
-# def create_treemap(df, metric):
-#     pass
+def create_treemap(df, kpi, state):
+    # Filter data for treemap
+    filtered_df = df.query(f"count > {df['count'].quantile(0.5)}")
+    kpi_name = dropdown_options[kpi]
+    # Create the treemap with hover information
+    fig = px.treemap(
+        filtered_df,
+        path=[px.Constant("US Market"), "soc_description_1", "soc_description_2"],
+        title=f"{kpi_name} across different US jobs",
+        values="count",
+        color="metric",
+        color_continuous_scale=diverging.RdYlBu[::-1],
+    )
+
+    # Update hovertemplate for clarity
+    fig.update_traces(
+        marker=dict(cornerradius=1),
+        hovertemplate=(
+            "<b>Job description:</b> %{label}<br>"
+            "<b>Number of workers:</b> %{value}<br>"
+            f"<b>{kpi_name}:</b> " + "%{color}<extra></extra>"
+        ),
+    )
+
+    return fig

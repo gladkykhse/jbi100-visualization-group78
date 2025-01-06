@@ -6,14 +6,7 @@ dropdown_options = {
     "death_to_incident": "Death-to-Incident Ratio",
     "safety_score": "Aggregated Safety Score",
 }
-# dropdown_options = {
-#     "incident_rate": "Incident Rate per 1 million Hours Worked",
-#     "fatality_rate": "Fatality Rate per 100 million Hours Worked",
-#     "lost_workday_rate": "Lost Workday Rate per Injury",
-#     "severity_index": "Severity Index",
-#     "death_to_incident": "Death-to-Incident Ratio",
-#     "safety_score": "Aggregated Safety Score",
-# }
+
 state_map = {
     "AL": "Alabama",
     "AK": "Alaska",
