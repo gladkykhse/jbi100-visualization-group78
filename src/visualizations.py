@@ -70,11 +70,12 @@ def create_map(df, kpi="incident_rate", selected_state=None):
             z=df[kpi],
             zmin=0,  # Set the minimum value to 0 to avoid issues with the color scale
             locationmode="USA-states",
-            colorscale="RdBu",  # "Viridis, Cividis, Plasma, Oranges
+            colorscale="RdYlBu",
+            reversescale=True,  
             autocolorscale=False,
             marker_line_color=border_color,  # Default boundary lines
             colorbar=dict(title=dict(text=kpi_name)),
-            # hovertemplate="<b>State:</b> %{customdata[0]}<br><b>Value:</b> %{z}<extra></extra>",
+            hovertemplate="<b>State:</b> %{text}<br><b>Value:</b> %{z}<extra></extra>",
             text=df["state_code"].map(state_map),  # Add state names to the hover info
             hoverinfo="text+z",
         )
@@ -107,7 +108,7 @@ def create_map(df, kpi="incident_rate", selected_state=None):
         geo=dict(
             scope="usa",
             projection=go.layout.geo.Projection(type="albers usa"),
-            showlakes=True,
+            showlakes=False,
             lakecolor=background_color,
             bgcolor=background_color,
         ),
