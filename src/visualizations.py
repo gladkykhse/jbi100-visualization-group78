@@ -1,6 +1,8 @@
 import plotly.express as px
 import plotly.graph_objects as go
+
 from src.mappings import dropdown_options, state_map
+
 
 def create_radar_chart(df, dropdown_state):
     fig = go.Figure()
@@ -17,7 +19,7 @@ def create_radar_chart(df, dropdown_state):
     )
 
     fig.update_layout(
-        title_text=f'{state_map[dropdown_state]} Safety Profile',
+        title_text=f"{state_map[dropdown_state]} Safety Profile",
         polar=dict(
             radialaxis=dict(
                 visible=True,
@@ -50,7 +52,7 @@ def create_grouped_bar_chart(df, feature, kpi):
     # Update layout
     fig.update_layout(
         yaxis_title=kpi_name,  # Set the y-axis label to the KPI name
-        xaxis_title=feature,   # Set the x-axis label
+        xaxis_title=feature,  # Set the x-axis label
     )
 
     return fig
@@ -60,8 +62,6 @@ def create_map(df, kpi="incident_rate", selected_state=None):
     kpi_name = dropdown_options[kpi]
     background_color = "white"
     border_color = "rgba(0, 0, 0, 0.2)"
-    # Prepare data for the map
-    df = df[["state_code", kpi]].groupby(["state_code"], observed=False).mean().reset_index()
 
     # Create the base map
     fig = go.Figure(
@@ -70,7 +70,7 @@ def create_map(df, kpi="incident_rate", selected_state=None):
             z=df[kpi],
             zmin=0,  # Set the minimum value to 0 to avoid issues with the color scale
             locationmode="USA-states",
-            colorscale="RdBu", # "Viridis, Cividis, Plasma, Oranges
+            colorscale="RdBu",  # "Viridis, Cividis, Plasma, Oranges
             autocolorscale=False,
             marker_line_color=border_color,  # Default boundary lines
             colorbar=dict(title=dict(text=kpi_name)),
@@ -102,14 +102,14 @@ def create_map(df, kpi="incident_rate", selected_state=None):
             )
     fig.update_layout(
         title_text=f"{kpi_name} by State",
-        margin={"r":0, "t": 30, "l":0,"b":0},
+        margin={"r": 0, "t": 30, "l": 0, "b": 0},
         clickmode="event+select",  # Enable click events
         geo=dict(
             scope="usa",
             projection=go.layout.geo.Projection(type="albers usa"),
             showlakes=True,
             lakecolor=background_color,
-            bgcolor=background_color, 
+            bgcolor=background_color,
         ),
     )
     return fig
@@ -133,12 +133,27 @@ def create_histogram(filtered_df, feature):
 def create_timeline(df, period_column="incident_month", kpi="incident_rate", selected_state=None):
     # Define mappings for months and weekdays
     month_labels = {
-        1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June",
-        7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December"
+        1: "January",
+        2: "February",
+        3: "March",
+        4: "April",
+        5: "May",
+        6: "June",
+        7: "July",
+        8: "August",
+        9: "September",
+        10: "October",
+        11: "November",
+        12: "December",
     }
     weekday_labels = {
-        0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 
-        4: "Friday", 5: "Saturday", 6: "Sunday"
+        0: "Monday",
+        1: "Tuesday",
+        2: "Wednesday",
+        3: "Thursday",
+        4: "Friday",
+        5: "Saturday",
+        6: "Sunday",
     }
 
     # Map numeric columns to text labels if applicable
@@ -148,7 +163,6 @@ def create_timeline(df, period_column="incident_month", kpi="incident_rate", sel
         df[period_column] = df[period_column].map(weekday_labels)
     else:
         df[period_column] = df[period_column].astype("string")
-
 
     # Prepare average data
     avg_df = df.groupby(period_column, as_index=False)[kpi].mean()

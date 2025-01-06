@@ -95,9 +95,7 @@ def compute_agg_lost_workday_rate(df, column=None):
     temp["total_lost_days"] = temp["dafw_num_away"] + temp["djtr_num_tr"]
 
     # Compute the lost workday rate per case
-    temp["lost_workday_rate"] = np.where(
-        temp["case_number"] == 0, 0, temp["total_lost_days"] / temp["case_number"]
-    )
+    temp["lost_workday_rate"] = np.where(temp["case_number"] == 0, 0, temp["total_lost_days"] / temp["case_number"])
 
     # Drop intermediate columns
     temp.drop(columns=["dafw_num_away", "djtr_num_tr", "total_lost_days"], inplace=True)
@@ -115,9 +113,7 @@ def compute_agg_severity_index(df, column=None):
     )
     temp.fillna(0, inplace=True)
 
-    temp["severity_index"] = np.where(
-        temp["case_number"] == 0, 0, temp["dafw_num_away"] / temp["case_number"]
-    )
+    temp["severity_index"] = np.where(temp["case_number"] == 0, 0, temp["dafw_num_away"] / temp["case_number"])
 
     temp.drop(columns=["dafw_num_away", "case_number"], inplace=True)
 
@@ -135,9 +131,7 @@ def compute_death_to_incident_ratio(df, column=None):
 
     temp.fillna(0, inplace=True)
 
-    temp["death_to_incident"] = np.where(
-        temp["case_number"] == 0, 0, temp["death"] / temp["case_number"]
-    )
+    temp["death_to_incident"] = np.where(temp["case_number"] == 0, 0, temp["death"] / temp["case_number"])
 
     temp.drop(columns=["death", "case_number"], inplace=True)
 
@@ -146,16 +140,10 @@ def compute_death_to_incident_ratio(df, column=None):
 
 def compute_agg_safety_score(df, column=None):
     stats = compute_agg_incident_rate_per_100k(df, column)
-    stats["fatality_rate"] = compute_agg_fatality_rate_per_100k(df, column)[
-        "fatality_rate"
-    ]
-    stats["lost_workday_rate"] = compute_agg_lost_workday_rate(df, column)[
-        "lost_workday_rate"
-    ]
+    stats["fatality_rate"] = compute_agg_fatality_rate_per_100k(df, column)["fatality_rate"]
+    stats["lost_workday_rate"] = compute_agg_lost_workday_rate(df, column)["lost_workday_rate"]
     stats["severity_index"] = compute_agg_severity_index(df, column)["severity_index"]
-    stats["death_to_incident"] = compute_death_to_incident_ratio(df, column)[
-        "death_to_incident"
-    ]
+    stats["death_to_incident"] = compute_death_to_incident_ratio(df, column)["death_to_incident"]
 
     stats["safety_score"] = (
         1.0 * stats["incident_rate"]
@@ -204,24 +192,18 @@ mean_metric_values = {
 
 
 def prepare_radar_data(state_code):
-    incident_rate = region_incident_rates[
-        region_incident_rates["state_code"] == state_code
-    ]["incident_rate"].values[0]
-    fatality_rate = region_fatality_rates[
-        region_fatality_rates["state_code"] == state_code
-    ]["fatality_rate"].values[0]
-    lost_workday_rate = region_lost_workday_rate[
-        region_lost_workday_rate["state_code"] == state_code
-    ]["lost_workday_rate"].values[0]
-    severity_index = region_severity_index[
-        region_severity_index["state_code"] == state_code
-    ]["severity_index"].values[0]
-    death_to_incident = region_death_to_incident[
-        region_death_to_incident["state_code"] == state_code
-    ]["death_to_incident"].values[0]
-    safety_score = region_safety_score[region_safety_score["state_code"] == state_code][
-        "safety_score"
+    incident_rate = region_incident_rates[region_incident_rates["state_code"] == state_code]["incident_rate"].values[0]
+    fatality_rate = region_fatality_rates[region_fatality_rates["state_code"] == state_code]["fatality_rate"].values[0]
+    lost_workday_rate = region_lost_workday_rate[region_lost_workday_rate["state_code"] == state_code][
+        "lost_workday_rate"
     ].values[0]
+    severity_index = region_severity_index[region_severity_index["state_code"] == state_code]["severity_index"].values[
+        0
+    ]
+    death_to_incident = region_death_to_incident[region_death_to_incident["state_code"] == state_code][
+        "death_to_incident"
+    ].values[0]
+    safety_score = region_safety_score[region_safety_score["state_code"] == state_code]["safety_score"].values[0]
 
     radar_data = {
         "kpi": [
@@ -246,20 +228,11 @@ def prepare_radar_data(state_code):
             (fatality_rate - min_metric_values["fatality_rate"])
             / (max_metric_values["fatality_rate"] - min_metric_values["fatality_rate"]),
             (lost_workday_rate - min_metric_values["lost_workday_rate"])
-            / (
-                max_metric_values["lost_workday_rate"]
-                - min_metric_values["lost_workday_rate"]
-            ),
+            / (max_metric_values["lost_workday_rate"] - min_metric_values["lost_workday_rate"]),
             (severity_index - min_metric_values["severity_index"])
-            / (
-                max_metric_values["severity_index"]
-                - min_metric_values["severity_index"]
-            ),
+            / (max_metric_values["severity_index"] - min_metric_values["severity_index"]),
             (death_to_incident - min_metric_values["death_to_incident"])
-            / (
-                max_metric_values["death_to_incident"]
-                - min_metric_values["death_to_incident"]
-            ),
+            / (max_metric_values["death_to_incident"] - min_metric_values["death_to_incident"]),
             (safety_score - min_metric_values["safety_score"])
             / (max_metric_values["safety_score"] - min_metric_values["safety_score"]),
         ],
@@ -274,29 +247,30 @@ def prepare_state_data(
     agg_column="incident_month",
     kpi="incident_rate",
 ):
-    filtered_data = data[
-        (data["date_of_incident"] >= start_date)
-        & (data["date_of_incident"] <= end_date)
-    ]
+    filtered_data = data[(data["date_of_incident"] >= start_date) & (data["date_of_incident"] <= end_date)]
     if filter_incident_types:
-        filtered_data = filtered_data[
-            filtered_data["type_of_incident"].isin(filter_incident_types)
-        ]
+        filtered_data = filtered_data[filtered_data["type_of_incident"].isin(filter_incident_types)]
 
     if kpi == "incident_rate":
-        stats = compute_agg_incident_rate_per_100k(filtered_data, agg_column)
+        timeline_data = compute_agg_incident_rate_per_100k(filtered_data, agg_column)
+        map_data = compute_agg_incident_rate_per_100k(filtered_data, None)
     elif kpi == "fatality_rate":
-        stats = compute_agg_fatality_rate_per_100k(filtered_data, agg_column)
+        timeline_data = compute_agg_fatality_rate_per_100k(filtered_data, agg_column)
+        map_data = compute_agg_fatality_rate_per_100k(filtered_data, None)
     elif kpi == "lost_workday_rate":
-        stats = compute_agg_lost_workday_rate(filtered_data, agg_column)
+        timeline_data = compute_agg_lost_workday_rate(filtered_data, agg_column)
+        map_data = compute_agg_lost_workday_rate(filtered_data, None)
     elif kpi == "severity_index":
-        stats = compute_agg_severity_index(filtered_data, agg_column)
+        timeline_data = compute_agg_severity_index(filtered_data, agg_column)
+        map_data = compute_agg_severity_index(filtered_data, None)
     elif kpi == "death_to_incident":
-        stats = compute_death_to_incident_ratio(filtered_data, agg_column)
+        timeline_data = compute_death_to_incident_ratio(filtered_data, agg_column)
+        map_data = compute_death_to_incident_ratio(filtered_data, None)
     else:
-        stats = compute_agg_safety_score(filtered_data, agg_column)
+        timeline_data = compute_agg_safety_score(filtered_data, agg_column)
+        map_data = compute_agg_safety_score(filtered_data, None)
 
-    return stats
+    return map_data, timeline_data
 
 
 def prepare_bar_chart_data(state_code, feature, kpi):

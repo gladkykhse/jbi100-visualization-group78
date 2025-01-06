@@ -32,9 +32,14 @@ main_layout = html.Div(
         ),
         # Dropdown and content area
         html.Div(
-            style={"display": "flex", "flexGrow": "1", "height": "100%"},
+            style={
+                "display": "flex",
+                "flexGrow": "1",
+                "height": "100%",
+                "overflow": "auto",
+            },
             children=[
-                # Dropdown menu on the left
+                # Dropdown menu on the left (Sidebar)
                 html.Div(
                     id="left-menu",
                     style={
@@ -43,9 +48,9 @@ main_layout = html.Div(
                         "padding": "2%",
                         "borderRight": "1px solid #dfe4ea",
                         "boxSizing": "border-box",
-                        "height": "100%",
-                        "display": "flex",
-                        "flexDirection": "column",
+                        "minHeight": "100vh",  # Ensures it always fills the viewport height
+                        "flexShrink": "0",  # Prevents sidebar from shrinking
+                        "overflowY": "auto",  # Adds scrolling if content exceeds the height
                     },
                     children=[
                         html.Div(
@@ -65,9 +70,7 @@ main_layout = html.Div(
                         html.Div(
                             id="date-picker-container",
                             children=[
-                                html.H4(
-                                    "Select Date Range", style={"marginBottom": "5%"}
-                                ),
+                                html.H4("Select Date Range", style={"marginBottom": "5%"}),
                                 dcc.DatePickerRange(
                                     id="date-picker-range",
                                     start_date=data["date_of_incident"].min(),
@@ -86,10 +89,7 @@ main_layout = html.Div(
                                 ),
                                 dcc.Dropdown(
                                     id="incident-filter-dropdown",
-                                    options=[
-                                        {"label": cat_value, "value": cat_value}
-                                        for cat_value in incident_types
-                                    ],
+                                    options=[{"label": cat_value, "value": cat_value} for cat_value in incident_types],
                                     placeholder="Select one or more categories",
                                     multi=True,
                                     clearable=True,
@@ -100,9 +100,7 @@ main_layout = html.Div(
                         html.Div(
                             id="time-period-container",
                             children=[
-                                html.H4(
-                                    "Select Time Period", style={"marginBottom": "5%"}
-                                ),
+                                html.H4("Select Time Period", style={"marginBottom": "5%"}),
                                 dcc.Dropdown(
                                     id="time-period-dropdown",
                                     options=[
@@ -134,9 +132,14 @@ main_layout = html.Div(
                         ),
                     ],
                 ),
-                # Tabs and visualizations on the right
+                # Tabs and visualizations on the right (Main Content)
                 html.Div(
-                    style={"width": "80%", "padding": "0%", "boxSizing": "border-box"},
+                    style={
+                        "width": "80%",
+                        "padding": "0%",
+                        "boxSizing": "border-box",
+                        "overflow": "auto",
+                    },
                     children=[
                         dcc.Tabs(
                             id="tabs",
