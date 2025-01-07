@@ -221,12 +221,20 @@ def create_timeline(
             line=dict(color="orange", width=2),
         )
     )
-
+    
     fig.update_layout(
         title=f"{kpi_name} by Period and State",
         xaxis_title=period_column.capitalize(),
         yaxis_title=kpi_name,
         legend_title="Legend",
+        height=600,
+        legend=dict(
+            orientation="h",  # Horizontal legend
+            y=-0.2,  # Position below the chart
+            x=0.5,  # Center horizontally
+            xanchor="center",  # Anchor legend horizontally at the center
+            yanchor="top"  # Anchor legend vertically at the top
+        )
     )
 
     return fig

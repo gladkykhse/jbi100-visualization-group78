@@ -9,6 +9,7 @@ from src.data import (
     prepare_state_data,
     prepare_treemap_data,
 )
+# from src.mappings import reverse_dropdown_options
 from src.layouts import main_layout
 from src.visualizations import (
     create_grouped_bar_chart,
@@ -72,6 +73,7 @@ def update_left_menu_visibility(tab_name):
 def update_bar_charts(click_data, state_code, start_date, end_date, incident_types):
     selected_kpi = "incident_rate"
     if click_data and "points" in click_data:
+        # selected_kpi = reverse_dropdown_options[click_data["points"][0]["theta"]]
         selected_kpi = click_data["points"][0]["theta"].lower().replace(" ", "_")
 
     size_data = prepare_bar_chart_data(
