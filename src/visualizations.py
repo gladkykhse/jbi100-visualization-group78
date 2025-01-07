@@ -140,6 +140,7 @@ def create_histogram(filtered_df, feature):
 def create_timeline(
     df, period_column="incident_month", kpi="incident_rate", selected_state=None
 ):
+    
     # Define mappings for months and weekdays
     month_labels = {
         1: "January",
@@ -167,14 +168,24 @@ def create_timeline(
 
     # Map numeric columns to text labels if applicable
     if period_column == "incident_month":
-        df[period_column] = df[period_column].map(month_labels)
+        df["period_label"] = df[period_column].map(month_labels)
     elif period_column == "incident_weekday":
-        df[period_column] = df[period_column].map(weekday_labels)
+        df["period_label"] = df[period_column].map(weekday_labels)
     else:
-        df[period_column] = df[period_column].astype("string")
+        df["period_label"] = df[period_column].astype("string")
 
     # Prepare average data
     avg_df = df.groupby(period_column, as_index=False)[kpi].mean()
+    print(avg_df)
+
+    # Add a descriptive label to the average dataframe for proper labeling
+    if period_column in ["incident_month", "incident_weekday"]:
+        avg_df["period_label"] = avg_df[period_column].map(
+            month_labels if period_column == "incident_month" else weekday_labels
+        )
+    else:
+        avg_df["period_label"] = avg_df[period_column]
+
     kpi_name = dropdown_options[kpi]
 
     # Create the figure
@@ -186,7 +197,7 @@ def create_timeline(
             state_data = df[df["state_code"] == state]
             fig.add_trace(
                 go.Scatter(
-                    x=state_data[period_column],
+                    x=state_data["period_label"],
                     y=state_data[kpi],
                     mode="markers",
                     name=state_map[state],
@@ -213,7 +224,7 @@ def create_timeline(
     # Add trace for the average incident rate (orange line)
     fig.add_trace(
         go.Scatter(
-            x=avg_df[period_column],
+            x=avg_df["period_label"],
             y=avg_df[kpi],
             mode="lines+markers",
             name=f"Average {kpi_name}",
