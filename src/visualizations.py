@@ -4,14 +4,29 @@ from plotly.colors import diverging
 
 from src.mappings import dropdown_options, state_map
 
+def transform_kpi_names(s):
+    # Split the string by underscores and capitalize each word
+    words = s.split('_')
+    # Join the words with spaces
+    transformed = ' '.join(word.capitalize() for word in words)
+    return transformed
 
 def create_radar_chart(df, dropdown_state):
     fig = go.Figure()
 
+    df["formatted_kpi"] = df["kpi"].apply(transform_kpi_names)
+
+
+    # Determine best and worst KPIs
+    worst_kpi = df.loc[df["value"].idxmax(), "formatted_kpi"]
+    best_kpi = df.loc[df["value"].idxmin(), "formatted_kpi"]
+
+    # Create the radar chart
+    fig = go.Figure()
     fig.add_trace(
         go.Scatterpolar(
             r=df["scaled_value"],
-            theta=df["kpi"],
+            theta=df["formatted_kpi"],
             fill="toself",
             name="kpi",
             customdata=df["value"],
@@ -19,6 +34,19 @@ def create_radar_chart(df, dropdown_state):
         )
     )
 
+    # Add annotations for best and worst KPIs
+    fig.add_annotation(
+        text=f"<b>Best KPI:</b> {best_kpi}<br><b>Worst KPI:</b> {worst_kpi}",
+        xref="paper",
+        yref="paper",
+        x=0.5,
+        y=-0.2,
+        showarrow=False,
+        font=dict(size=12),
+        align="center",
+    )
+
+    # Update chart layout
     fig.update_layout(
         title_text=f"{state_map[dropdown_state]} Safety Profile",
         polar=dict(
@@ -64,6 +92,14 @@ def create_map(df, kpi="incident_rate", selected_state=None):
     background_color = "white"
     border_color = "rgba(0, 0, 0, 0.2)"
 
+
+    # Find the states with the highest and lowest KPI values
+    max_kpi_state = df.loc[df[kpi].idxmax()]
+    min_kpi_state = df.loc[df[kpi].idxmin()]
+    kpi_naming = transform_kpi_names(kpi)
+    max_state_text = f"Highest {kpi_naming}: {state_map[max_kpi_state['state_code']]} ({max_kpi_state[kpi]:.2f})"
+    min_state_text = f"Lowest {kpi_naming}: {state_map[min_kpi_state['state_code']]} ({min_kpi_state[kpi]:.2f})"
+
     # Create the base map
     fig = go.Figure(
         data=go.Choropleth(
@@ -107,9 +143,23 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                     showscale=False,  # No color scale for the highlight layer
                 )
             )
+
+    fig.add_annotation(
+        text=f"{max_state_text}<br>{min_state_text}",
+        showarrow=False,
+        xref="paper",
+        yref="paper",
+        x=0.5,  # Centered horizontally
+        y=-0.1,  # Below the map
+        xanchor="center",
+        yanchor="top",
+        font=dict(size=12),
+        align="center",
+    )
+
     fig.update_layout(
         title_text=f"{kpi_name} by State",
-        margin={"r": 0, "t": 30, "l": 0, "b": 0},
+        margin={"r": 0, "t": 30, "l": 0, "b": 80},
         clickmode="event+select",  # Enable click events
         geo=dict(
             scope="usa",
@@ -176,7 +226,6 @@ def create_timeline(
 
     # Prepare average data
     avg_df = df.groupby(period_column, as_index=False)[kpi].mean()
-    print(avg_df)
 
     # Add a descriptive label to the average dataframe for proper labeling
     if period_column in ["incident_month", "incident_weekday"]:
