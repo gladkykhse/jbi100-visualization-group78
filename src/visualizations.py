@@ -209,9 +209,11 @@ def create_timeline(
     # Add trace for the selected state (red points + line)
     if selected_state:
         selected_data = df[df["state_code"] == selected_state]
+        print(selected_data)
+        print(period_column, kpi)
         fig.add_trace(
             go.Scatter(
-                x=selected_data[period_column],
+                x=selected_data["period_label"],
                 y=selected_data[kpi],
                 mode="lines+markers",  # Connect the points with a line
                 name=f"Selected State: {state_map[selected_state]}",  # Add the state name to the legend
