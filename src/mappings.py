@@ -7,6 +7,15 @@ dropdown_options = {
     "safety_score": "Aggregated Safety Score",
 }
 
+dropdown_options_rev = {
+    "Incident Rate": "incident_rate",
+    "Fatality Rate": "fatality_rate",
+    "Lost Workday Rate": "lost_workday_rate",
+    "Severity Index": "severity_index",
+    "Death To Incident": "death_to_incident",
+    "Safety Score": "safety_score",
+}
+
 state_map = {
     "AL": "Alabama",
     "AK": "Alaska",

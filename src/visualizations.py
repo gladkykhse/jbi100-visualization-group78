@@ -4,18 +4,19 @@ from plotly.colors import diverging
 
 from src.mappings import dropdown_options, state_map
 
+
 def transform_kpi_names(s):
     # Split the string by underscores and capitalize each word
-    words = s.split('_')
+    words = s.split("_")
     # Join the words with spaces
-    transformed = ' '.join(word.capitalize() for word in words)
+    transformed = " ".join(word.capitalize() for word in words)
     return transformed
+
 
 def create_radar_chart(df, dropdown_state):
     fig = go.Figure()
 
     df["formatted_kpi"] = df["kpi"].apply(transform_kpi_names)
-
 
     # Determine best and worst KPIs
     worst_kpi = df.loc[df["value"].idxmax(), "formatted_kpi"]
@@ -92,7 +93,6 @@ def create_map(df, kpi="incident_rate", selected_state=None):
     background_color = "white"
     border_color = "rgba(0, 0, 0, 0.2)"
 
-
     # Find the states with the highest and lowest KPI values
     max_kpi_state = df.loc[df[kpi].idxmax()]
     min_kpi_state = df.loc[df[kpi].idxmin()]
@@ -136,9 +136,7 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                     autocolorscale=False,
                     marker_line_color="red",  # Red border for the selected state
                     marker_line_width=2,  # Thicker border
-                    text=df["state_code"].map(
-                        state_map
-                    ),  # Add state names to the hover info
+                    text=df["state_code"].map(state_map),  # Add state names to the hover info
                     hoverinfo="text+z",  # Include hover info
                     showscale=False,  # No color scale for the highlight layer
                 )
@@ -187,10 +185,8 @@ def create_histogram(filtered_df, feature):
     return fig
 
 
-def create_timeline(
-    df, period_column="incident_month", kpi="incident_rate", selected_state=None
-):
-    
+def create_timeline(df, period_column="incident_month", kpi="incident_rate", selected_state=None):
+
     # Define mappings for months and weekdays
     month_labels = {
         1: "January",
@@ -283,7 +279,7 @@ def create_timeline(
             line=dict(color="orange", width=2),
         )
     )
-    
+
     fig.update_layout(
         title=f"{kpi_name} by Period and State",
         xaxis_title=period_column.capitalize(),
@@ -295,8 +291,8 @@ def create_timeline(
             y=-0.2,  # Position below the chart
             x=0.5,  # Center horizontally
             xanchor="center",  # Anchor legend horizontally at the center
-            yanchor="top"  # Anchor legend vertically at the top
-        )
+            yanchor="top",  # Anchor legend vertically at the top
+        ),
     )
 
     return fig
