@@ -18,6 +18,20 @@ def create_radar_chart(df, dropdown_state):
 
     df["formatted_kpi"] = df["kpi"].apply(transform_kpi_names)
 
+
+    kpi_colors = {
+        "Incident Rate": "red",
+        "Fatality Rate": "blue",
+        "Lost Workday Rate": "green",
+        "Severity Index": "orange",
+        "Death To Incident": "yellow",
+        "Safety Score": "purple",
+        # Add colors for all KPIs
+    }
+    
+    colors = df["formatted_kpi"].map(kpi_colors)
+
+
     # Determine best and worst KPIs
     worst_kpi = df.loc[df["value"].idxmax(), "formatted_kpi"]
     best_kpi = df.loc[df["value"].idxmin(), "formatted_kpi"]
@@ -32,6 +46,7 @@ def create_radar_chart(df, dropdown_state):
             name="kpi",
             customdata=df["value"],
             hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata}<br>",
+            marker=dict(color=colors),  # Assigning marker colors
         )
     )
 
