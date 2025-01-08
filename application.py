@@ -76,7 +76,7 @@ def update_bar_charts(click_data, state_code, start_date, end_date, incident_typ
         end_date,
         incident_types,
     )
-    treemap_data = prepare_treemap_data(state_code, "incident_rate", start_date, end_date, incident_types)
+    treemap_data = prepare_treemap_data(state_code, selected_kpi, start_date, end_date, incident_types)
     type_of_incident_data = prepare_bar_chart_data(
         state_code,
         "type_of_incident",
