@@ -221,6 +221,16 @@ for metric in kpi_name_function_mapping.keys():
     mean_metric_values[metric] = column_data.mean()
 
 
+def prepare_mean_radar_data(radar_region_safety_score):
+    mean_values = radar_region_safety_score.iloc[:, 1:].mean()
+
+    # Add the mean values as new columns to the dataframe
+    for col in mean_values.index:
+        radar_region_safety_score[f"mean_{col}"] = mean_values[col]
+
+    return radar_region_safety_score
+
+
 def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
     start_date = datetime.fromisoformat(start_date)
     end_date = datetime.fromisoformat(end_date)
@@ -245,6 +255,9 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
     else:
         radar_region_safety_score = region_safety_score
 
+
+    radar_region_safety_score=prepare_mean_radar_data(radar_region_safety_score)
+
     # Extract metrics
     metrics = [
         "incident_rate",
@@ -253,6 +266,7 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
         "severity_index",
         "death_to_incident",
         "safety_score",
+
     ]
     metric_values = radar_region_safety_score.loc[
         radar_region_safety_score["state_code"] == state_code, metrics
@@ -265,13 +279,24 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
         for metric in metrics
     ]
 
+
+    # Calculate scaled mean values
+    scaled_mean_values = [
+        radar_region_safety_score[f"mean_{metric}"].iloc[0]
+        / (metric_values[metric] / scaled_value if scaled_value != 0 else 0)
+        for metric, scaled_value in zip(metrics, scaled_values)
+    ]
+
     # Construct radar data
     radar_data = {
         "kpi": metrics,
         "value": metric_values.tolist(),
         "scaled_value": scaled_values,
+        "scaled_mean_value": scaled_mean_values,
     }
+    
     return pd.DataFrame(radar_data)
+
 
 
 def prepare_state_data(

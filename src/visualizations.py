@@ -20,12 +20,12 @@ def create_radar_chart(df, dropdown_state):
 
 
     kpi_colors = {
-        "Incident Rate": "red",
+        "Incident Rate": "blue",
         "Fatality Rate": "blue",
-        "Lost Workday Rate": "green",
-        "Severity Index": "orange",
-        "Death To Incident": "yellow",
-        "Safety Score": "purple",
+        "Lost Workday Rate": "blue",
+        "Severity Index": "blue",
+        "Death To Incident": "blue",
+        "Safety Score": "blue",
         # Add colors for all KPIs
     }
     
@@ -36,17 +36,30 @@ def create_radar_chart(df, dropdown_state):
     worst_kpi = df.loc[df["value"].idxmax(), "formatted_kpi"]
     best_kpi = df.loc[df["value"].idxmin(), "formatted_kpi"]
 
-    # Create the radar chart
-    fig = go.Figure()
+    # Add trace for scaled values
     fig.add_trace(
         go.Scatterpolar(
             r=df["scaled_value"],
             theta=df["formatted_kpi"],
             fill="toself",
-            name="kpi",
+            name="KPI Scaled Value",
             customdata=df["value"],
             hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata}<br>",
             marker=dict(color=colors),  # Assigning marker colors
+        )
+    )
+
+    # Add trace for mean scaled values
+    fig.add_trace(
+        go.Scatterpolar(
+            r=df["scaled_mean_value"],
+            theta=df["formatted_kpi"],
+            fill="toself",  # No fill for the mean values
+            name="KPI Scaled Mean Value",
+            fillcolor="orange",
+            opacity=0.5,
+            #line=dict(color="black", dash="dot"),  # Dashed black line for mean values
+            hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Mean Scaled Value</b>: %{r:.2f}<br>",
         )
     )
 
@@ -73,7 +86,7 @@ def create_radar_chart(df, dropdown_state):
             ),
         ),
         clickmode="event+select",
-        showlegend=False,
+        showlegend=True,  # Show legend to distinguish the two traces
     )
 
     return fig
