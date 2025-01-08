@@ -31,7 +31,7 @@ def create_radar_chart(df, dropdown_state):
             fill="toself",
             name="kpi",
             customdata=df["value"],
-            hovertemplate="<b>%{theta}</b><br>Value: %{customdata}<br>",
+            hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata}<br>",
         )
     )
 
@@ -97,8 +97,8 @@ def create_map(df, kpi="incident_rate", selected_state=None):
     max_kpi_state = df.loc[df[kpi].idxmax()]
     min_kpi_state = df.loc[df[kpi].idxmin()]
     kpi_naming = transform_kpi_names(kpi)
-    max_state_text = f"Highest {kpi_naming}: {state_map[max_kpi_state['state_code']]} ({max_kpi_state[kpi]:.2f})"
-    min_state_text = f"Lowest {kpi_naming}: {state_map[min_kpi_state['state_code']]} ({min_kpi_state[kpi]:.2f})"
+    max_state_text = f"<b>Highest {kpi_naming}</b>: {state_map[max_kpi_state['state_code']]} ({max_kpi_state[kpi]:.2f})"
+    min_state_text = f"<b>Lowest {kpi_naming}</b>: {state_map[min_kpi_state['state_code']]} ({min_kpi_state[kpi]:.2f})"
 
     # Create the base map
     fig = go.Figure(

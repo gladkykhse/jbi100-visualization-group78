@@ -1,5 +1,4 @@
 from datetime import datetime
-from functools import reduce
 
 import numpy as np
 import pandas as pd
@@ -17,26 +16,41 @@ def reduce_mem_usage(df):
         try:
             col_type = df[col].dtype
 
-            if col_type != object:
+            if col_type is not object:
                 c_min = df[col].min()
                 c_max = df[col].max()
                 if str(col_type)[:3] == "int":
                     if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
                         df[col] = df[col].astype(np.int8)
-                    elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                    elif (
+                        c_min > np.iinfo(np.int16).min
+                        and c_max < np.iinfo(np.int16).max
+                    ):
                         df[col] = df[col].astype(np.int16)
-                    elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                    elif (
+                        c_min > np.iinfo(np.int32).min
+                        and c_max < np.iinfo(np.int32).max
+                    ):
                         df[col] = df[col].astype(np.int32)
-                    elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
+                    elif (
+                        c_min > np.iinfo(np.int64).min
+                        and c_max < np.iinfo(np.int64).max
+                    ):
                         df[col] = df[col].astype(np.int64)
                 else:
-                    if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
+                    if (
+                        c_min > np.finfo(np.float16).min
+                        and c_max < np.finfo(np.float16).max
+                    ):
                         df[col] = df[col].astype(np.float16)
-                    elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    elif (
+                        c_min > np.finfo(np.float32).min
+                        and c_max < np.finfo(np.float32).max
+                    ):
                         df[col] = df[col].astype(np.float32)
                     else:
                         df[col] = df[col].astype(np.float64)
-        except Exception as exc:
+        except Exception:
             pass
 
     end_mem = df.memory_usage().sum() / 1024**2
@@ -110,7 +124,9 @@ def compute_agg_lost_workday_rate(df, column=None):
     )
 
     temp["total_lost_days"] = temp["dafw_num_away"] + temp["djtr_num_tr"]
-    temp["lost_workday_rate"] = np.where(temp["case_number"] > 0, temp["total_lost_days"] / temp["case_number"], 0)
+    temp["lost_workday_rate"] = np.where(
+        temp["case_number"] > 0, temp["total_lost_days"] / temp["case_number"], 0
+    )
     return temp[agg_cols + ["lost_workday_rate"]]
 
 
@@ -125,7 +141,9 @@ def compute_death_to_incident_ratio(df, column=None):
         .reset_index()
     )
 
-    temp["death_to_incident"] = np.where(temp["case_number"] > 0, temp["death"] / temp["case_number"] * 1e4, 0)
+    temp["death_to_incident"] = np.where(
+        temp["case_number"] > 0, temp["death"] / temp["case_number"] * 1e4, 0
+    )
     return temp[agg_cols + ["death_to_incident"]]
 
 
@@ -140,7 +158,9 @@ def compute_agg_severity_index(df, column=None):
         .reset_index()
     )
 
-    temp["severity_index"] = np.where(temp["case_number"] > 0, temp["dafw_num_away"] / temp["case_number"], 0)
+    temp["severity_index"] = np.where(
+        temp["case_number"] > 0, temp["dafw_num_away"] / temp["case_number"], 0
+    )
     return temp[agg_cols + ["severity_index"]]
 
 
@@ -206,13 +226,21 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
     end_date = datetime.fromisoformat(end_date)
 
     # Determine if we can use precomputed values
-    use_precomputed = start_date == data["date_of_incident"].min() and end_date == data["date_of_incident"].max()
+    use_precomputed = (
+        start_date == data["date_of_incident"].min()
+        and end_date == data["date_of_incident"].max()
+    )
 
     # Filter data if necessary
     if not use_precomputed or filter_incident_types:
-        filtered_data = data[(data["date_of_incident"] >= start_date) & (data["date_of_incident"] <= end_date)]
+        filtered_data = data[
+            (data["date_of_incident"] >= start_date)
+            & (data["date_of_incident"] <= end_date)
+        ]
         if filter_incident_types:
-            filtered_data = filtered_data[filtered_data["type_of_incident"].isin(filter_incident_types)]
+            filtered_data = filtered_data[
+                filtered_data["type_of_incident"].isin(filter_incident_types)
+            ]
         radar_region_safety_score = compute_agg_safety_score(filtered_data)
     else:
         radar_region_safety_score = region_safety_score
@@ -232,7 +260,8 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
 
     # Scale metrics
     scaled_values = [
-        (metric_values[metric] - min_metric_values[metric]) / (max_metric_values[metric] - min_metric_values[metric])
+        (metric_values[metric] - min_metric_values[metric])
+        / (max_metric_values[metric] - min_metric_values[metric])
         for metric in metrics
     ]
 
@@ -252,17 +281,27 @@ def prepare_state_data(
     agg_column="incident_month",
     kpi="incident_rate",
 ):
-    filtered_data = data[(data["date_of_incident"] >= start_date) & (data["date_of_incident"] <= end_date)]
+    filtered_data = data[
+        (data["date_of_incident"] >= start_date)
+        & (data["date_of_incident"] <= end_date)
+    ]
     if filter_incident_types:
-        filtered_data = filtered_data[filtered_data["type_of_incident"].isin(filter_incident_types)]
+        filtered_data = filtered_data[
+            filtered_data["type_of_incident"].isin(filter_incident_types)
+        ]
     func = kpi_name_function_mapping[kpi]
 
     return func(filtered_data, None), func(filtered_data, agg_column)
 
 
-def prepare_bar_chart_data(state_code, feature, kpi, start_date, end_date, filter_incident_types):
+def prepare_bar_chart_data(
+    state_code, feature, kpi, start_date, end_date, filter_incident_types
+):
     temp = data[data["state_code"] == state_code]
-    temp = temp[(temp["date_of_incident"] >= start_date) & (temp["date_of_incident"] <= end_date)]
+    temp = temp[
+        (temp["date_of_incident"] >= start_date)
+        & (temp["date_of_incident"] <= end_date)
+    ]
     if filter_incident_types:
         temp = temp[temp["type_of_incident"].isin(filter_incident_types)]
     return kpi_name_function_mapping[kpi](temp, feature)
@@ -270,12 +309,17 @@ def prepare_bar_chart_data(state_code, feature, kpi, start_date, end_date, filte
 
 def prepare_treemap_data(state_code, kpi, start_date, end_date, incident_types):
     temp = data[data["state_code"] == state_code]
-    temp = temp[(temp["date_of_incident"] >= start_date) & (temp["date_of_incident"] <= end_date)]
+    temp = temp[
+        (temp["date_of_incident"] >= start_date)
+        & (temp["date_of_incident"] <= end_date)
+    ]
     if incident_types:
         temp = temp[temp["type_of_incident"].isin(incident_types)]
     metric_function = kpi_name_function_mapping[kpi]
     return (
-        temp.query("soc_description_1 != 'Insufficient info' & soc_description_1 != 'Not assigned'")
+        temp.query(
+            "soc_description_1 != 'Insufficient info' & soc_description_1 != 'Not assigned'"
+        )
         .groupby(["soc_description_1", "soc_description_2"], observed=True)
         .agg(
             count=(
