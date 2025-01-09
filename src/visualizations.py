@@ -17,7 +17,10 @@ def create_radar_chart(df, dropdown_state):
     # Determine best and worst KPIs
     worst_kpi = df.at[df["value"].idxmax(), "formatted_kpi"]
     best_kpi = df.at[df["value"].idxmin(), "formatted_kpi"]
-    df_closed = df.copy()._append(df.iloc[0], ignore_index=True)
+    try:
+        df_closed = df.copy()._append(df.iloc[0], ignore_index=True)
+    except Exception:
+        df_closed = df
 
     # Add trace for scaled values
     fig.add_trace(
