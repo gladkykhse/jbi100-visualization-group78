@@ -6,11 +6,8 @@ from src.mappings import dropdown_options, state_map
 
 
 def transform_kpi_names(s):
-    # Split the string by underscores and capitalize each word
-    words = s.split("_")
-    # Join the words with spaces
-    transformed = " ".join(word.capitalize() for word in words)
-    return transformed
+    return " ".join(map(str.capitalize, s.split("_")))
+
 
 
 def create_radar_chart(df, dropdown_state):
@@ -18,48 +15,35 @@ def create_radar_chart(df, dropdown_state):
 
     df["formatted_kpi"] = df["kpi"].apply(transform_kpi_names)
 
-
-    kpi_colors = {
-        "Incident Rate": "blue",
-        "Fatality Rate": "blue",
-        "Lost Workday Rate": "blue",
-        "Severity Index": "blue",
-        "Death To Incident": "blue",
-        "Safety Score": "blue",
-        # Add colors for all KPIs
-    }
-    
-    colors = df["formatted_kpi"].map(kpi_colors)
-
-
     # Determine best and worst KPIs
-    worst_kpi = df.loc[df["value"].idxmax(), "formatted_kpi"]
-    best_kpi = df.loc[df["value"].idxmin(), "formatted_kpi"]
+    worst_kpi = df.at[df["value"].idxmax(), "formatted_kpi"]
+    best_kpi = df.at[df["value"].idxmin(), "formatted_kpi"]
+    df_closed = df.copy()._append(df.iloc[0], ignore_index=True)
 
     # Add trace for scaled values
     fig.add_trace(
         go.Scatterpolar(
-            r=df["scaled_value"],
-            theta=df["formatted_kpi"],
+            r=df_closed["scaled_value"],
+            theta=df_closed["formatted_kpi"],
             fill="toself",
-            name="KPI Scaled Value",
-            customdata=df["value"],
+            name=f"{state_map[dropdown_state]} Metric Values",
+            customdata=df_closed["value"],
+            opacity=0.8,
             hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata}<br>",
-            marker=dict(color=colors),  # Assigning marker colors
         )
     )
 
     # Add trace for mean scaled values
     fig.add_trace(
         go.Scatterpolar(
-            r=df["scaled_mean_value"],
-            theta=df["formatted_kpi"],
+            r=df_closed["scaled_mean_value"],
+            theta=df_closed["formatted_kpi"],
             fill="toself",  # No fill for the mean values
-            name="KPI Scaled Mean Value",
-            fillcolor="orange",
-            opacity=0.5,
-            #line=dict(color="black", dash="dot"),  # Dashed black line for mean values
-            hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Mean Scaled Value</b>: %{r:.2f}<br>",
+            name="Average Metric Values Across All States",
+            customdata=df_closed["mean_value"],
+            # fillcolor="orange",
+            opacity=0.8,
+            hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata}<br>",
         )
     )
 
@@ -80,13 +64,18 @@ def create_radar_chart(df, dropdown_state):
         title_text=f"{state_map[dropdown_state]} Safety Profile",
         polar=dict(
             radialaxis=dict(
-                visible=True,
-                showticklabels=False,
-                showline=False,
+                visible=False,
             ),
         ),
         clickmode="event+select",
-        showlegend=True,  # Show legend to distinguish the two traces
+        showlegend=True,
+        legend=dict(
+            orientation="h",  # Horizontal legend
+            yanchor="bottom",  # Align the legend's bottom with the top of the plot
+            y=1.1,             # Position above the chart
+            xanchor="center",  # Center-align the legend
+            x=0.5,             # Center position horizontally
+        ),
     )
 
     return fig

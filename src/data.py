@@ -3,71 +3,8 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-
-# Looks at the column value. Decreases float64 to float 32 or float16 without loosing info
-def reduce_mem_usage(df):
-    """iterate through all the columns of a dataframe and modify the data type
-    to reduce memory usage.
-    """
-    start_mem = df.memory_usage().sum() / 1024**2
-    print("Memory usage of dataframe is {:.2f} MB".format(start_mem))
-
-    for col in df.columns:
-        try:
-            col_type = df[col].dtype
-
-            if col_type is not object:
-                c_min = df[col].min()
-                c_max = df[col].max()
-                if str(col_type)[:3] == "int":
-                    if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
-                        df[col] = df[col].astype(np.int8)
-                    elif (
-                        c_min > np.iinfo(np.int16).min
-                        and c_max < np.iinfo(np.int16).max
-                    ):
-                        df[col] = df[col].astype(np.int16)
-                    elif (
-                        c_min > np.iinfo(np.int32).min
-                        and c_max < np.iinfo(np.int32).max
-                    ):
-                        df[col] = df[col].astype(np.int32)
-                    elif (
-                        c_min > np.iinfo(np.int64).min
-                        and c_max < np.iinfo(np.int64).max
-                    ):
-                        df[col] = df[col].astype(np.int64)
-                else:
-                    if (
-                        c_min > np.finfo(np.float16).min
-                        and c_max < np.finfo(np.float16).max
-                    ):
-                        df[col] = df[col].astype(np.float16)
-                    elif (
-                        c_min > np.finfo(np.float32).min
-                        and c_max < np.finfo(np.float32).max
-                    ):
-                        df[col] = df[col].astype(np.float32)
-                    else:
-                        df[col] = df[col].astype(np.float64)
-        except Exception:
-            pass
-
-    end_mem = df.memory_usage().sum() / 1024**2
-    print("Memory usage after optimization is: {:.2f} MB".format(end_mem))
-    print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
-
-    return df
-
-
 data = pd.read_parquet("datasets/processed_data.parquet")
 
-data["incident_year"] = data["date_of_incident"].dt.year
-data["incident_month"] = data["date_of_incident"].dt.month
-data["incident_weekday"] = data["date_of_incident"].dt.weekday
-data["death"] = data["date_of_death"].notna().astype(np.int32)
-
-data = reduce_mem_usage(data)
 
 incident_types = sorted(data["type_of_incident"].unique())
 state_codes = sorted(data["state_code"].unique())
@@ -221,6 +158,31 @@ for metric in kpi_name_function_mapping.keys():
     mean_metric_values[metric] = column_data.mean()
 
 
+def filter_data(df, start_date, end_date, filter_incident_types):
+    start_date = datetime.fromisoformat(start_date)
+    end_date = datetime.fromisoformat(end_date)
+
+    # Determine if filtering is necessary
+    use_precomputed = (
+        start_date == df["date_of_incident"].min()
+        and end_date == df["date_of_incident"].max()
+    )
+
+    if use_precomputed and not filter_incident_types:
+        return df  # Return unfiltered dataset if precomputed can be used
+
+    # Apply filtering
+    filtered_data = df[
+        (df["date_of_incident"] >= start_date) & (df["date_of_incident"] <= end_date)
+    ]
+    if filter_incident_types:
+        filtered_data = filtered_data[
+            filtered_data["type_of_incident"].isin(filter_incident_types)
+        ]
+
+    return filtered_data
+
+
 def prepare_mean_radar_data(radar_region_safety_score):
     mean_values = radar_region_safety_score.iloc[:, 1:].mean()
 
@@ -232,31 +194,15 @@ def prepare_mean_radar_data(radar_region_safety_score):
 
 
 def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
-    start_date = datetime.fromisoformat(start_date)
-    end_date = datetime.fromisoformat(end_date)
+    filtered_data = filter_data(data, start_date, end_date, filter_incident_types)
 
-    # Determine if we can use precomputed values
-    use_precomputed = (
-        start_date == data["date_of_incident"].min()
-        and end_date == data["date_of_incident"].max()
-    )
-
-    # Filter data if necessary
-    if not use_precomputed or filter_incident_types:
-        filtered_data = data[
-            (data["date_of_incident"] >= start_date)
-            & (data["date_of_incident"] <= end_date)
-        ]
-        if filter_incident_types:
-            filtered_data = filtered_data[
-                filtered_data["type_of_incident"].isin(filter_incident_types)
-            ]
-        radar_region_safety_score = compute_agg_safety_score(filtered_data)
-    else:
+    # Compute radar region safety score
+    if filtered_data is data:  # No filtering applied, use precomputed values
         radar_region_safety_score = region_safety_score
+    else:
+        radar_region_safety_score = compute_agg_safety_score(filtered_data)
 
-
-    radar_region_safety_score=prepare_mean_radar_data(radar_region_safety_score)
+    radar_region_safety_score = prepare_mean_radar_data(radar_region_safety_score)
 
     # Extract metrics
     metrics = [
@@ -266,7 +212,6 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
         "severity_index",
         "death_to_incident",
         "safety_score",
-
     ]
     metric_values = radar_region_safety_score.loc[
         radar_region_safety_score["state_code"] == state_code, metrics
@@ -276,15 +221,25 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
     scaled_values = [
         (metric_values[metric] - min_metric_values[metric])
         / (max_metric_values[metric] - min_metric_values[metric])
+        if max_metric_values[metric] > min_metric_values[metric]
+        else 0
         for metric in metrics
     ]
-
-
+    mean_values = [
+        radar_region_safety_score[f"mean_{metric}"].iloc[0] for metric in metrics
+    ]
     # Calculate scaled mean values
+    # scaled_mean_values = [
+    #     radar_region_safety_score[f"mean_{metric}"].iloc[0] / metric_values[metric]
+    #     if metric_values[metric] != 0 else 0
+    #     for metric in metrics
+    # ]
     scaled_mean_values = [
-        radar_region_safety_score[f"mean_{metric}"].iloc[0]
-        / (metric_values[metric] / scaled_value if scaled_value != 0 else 0)
-        for metric, scaled_value in zip(metrics, scaled_values)
+        (mean_value - min_metric_values[metric])
+        / (max_metric_values[metric] - min_metric_values[metric])
+        if max_metric_values[metric] > min_metric_values[metric]
+        else 0
+        for metric, mean_value in zip(metrics, mean_values)
     ]
 
     # Construct radar data
@@ -292,11 +247,10 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
         "kpi": metrics,
         "value": metric_values.tolist(),
         "scaled_value": scaled_values,
+        "mean_value": mean_values,
         "scaled_mean_value": scaled_mean_values,
     }
-    
     return pd.DataFrame(radar_data)
-
 
 
 def prepare_state_data(
@@ -306,14 +260,7 @@ def prepare_state_data(
     agg_column="incident_month",
     kpi="incident_rate",
 ):
-    filtered_data = data[
-        (data["date_of_incident"] >= start_date)
-        & (data["date_of_incident"] <= end_date)
-    ]
-    if filter_incident_types:
-        filtered_data = filtered_data[
-            filtered_data["type_of_incident"].isin(filter_incident_types)
-        ]
+    filtered_data = filter_data(data, start_date, end_date, filter_incident_types)
     func = kpi_name_function_mapping[kpi]
 
     return func(filtered_data, None), func(filtered_data, agg_column)
@@ -322,24 +269,21 @@ def prepare_state_data(
 def prepare_bar_chart_data(
     state_code, feature, kpi, start_date, end_date, filter_incident_types
 ):
-    temp = data[data["state_code"] == state_code]
-    temp = temp[
-        (temp["date_of_incident"] >= start_date)
-        & (temp["date_of_incident"] <= end_date)
-    ]
-    if filter_incident_types:
-        temp = temp[temp["type_of_incident"].isin(filter_incident_types)]
-    return kpi_name_function_mapping[kpi](temp, feature)
+    state_data = data[data["state_code"] == state_code]
+    filtered_data = filter_data(state_data, start_date, end_date, filter_incident_types)
+
+    # Compute the KPI
+    return kpi_name_function_mapping[kpi](filtered_data, feature)
 
 
 def prepare_treemap_data(state_code, kpi, start_date, end_date, incident_types):
-    temp = data[data["state_code"] == state_code]
-    temp = temp[
-        (temp["date_of_incident"] >= start_date)
-        & (temp["date_of_incident"] <= end_date)
-    ]
-    if incident_types:
-        temp = temp[temp["type_of_incident"].isin(incident_types)]
+    temp = filter_data(
+        data.query("state_code == @state_code"), start_date, end_date, incident_types
+    )
+
+    # Further filter for the specific state
+
+    # Select the metric function
     metric_function = kpi_name_function_mapping[kpi]
     return (
         temp.query(
