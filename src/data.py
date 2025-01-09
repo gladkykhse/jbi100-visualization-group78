@@ -257,13 +257,33 @@ def prepare_state_data(
     start_date,
     end_date,
     filter_incident_types,
-    agg_column="incident_month",
     kpi="incident_rate",
 ):
     filtered_data = filter_data(data, start_date, end_date, filter_incident_types)
-    func = kpi_name_function_mapping[kpi]
+    aggregated_data = (
+        filtered_data.groupby("state_code")
+        .agg(
+            annual_average_employees_median=("annual_average_employees", "median"),
+            annual_average_employees_sum=("annual_average_employees", "sum"),
+            total_hours_worked=("total_hours_worked", "median"),
+            dafw_num_away=("dafw_num_away", "median"),
+            djtr_num_tr=("djtr_num_tr", "median"),
+            death=("death", "mean"),
+            establishment_id=("establishment_id", "count"),
+        )
+        .reset_index()
+    )
+    aggregated_data["injury_density"] = (
+        aggregated_data["establishment_id"]
+        / aggregated_data["annual_average_employees_sum"]
+    )
 
-    return func(filtered_data, None), func(filtered_data, agg_column)
+    return pd.merge(
+        aggregated_data,
+        kpi_name_function_mapping[kpi](filtered_data),
+        on="state_code",
+        how="inner",
+    )
 
 
 def prepare_bar_chart_data(

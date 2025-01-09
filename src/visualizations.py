@@ -9,7 +9,6 @@ def transform_kpi_names(s):
     return " ".join(map(str.capitalize, s.split("_")))
 
 
-
 def create_radar_chart(df, dropdown_state):
     fig = go.Figure()
 
@@ -41,7 +40,7 @@ def create_radar_chart(df, dropdown_state):
             fill="toself",  # No fill for the mean values
             name="Average Metric Values Across All States",
             customdata=df_closed["mean_value"],
-            # fillcolor="orange",
+            fillcolor="orange",
             opacity=0.8,
             hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata}<br>",
         )
@@ -72,9 +71,9 @@ def create_radar_chart(df, dropdown_state):
         legend=dict(
             orientation="h",  # Horizontal legend
             yanchor="bottom",  # Align the legend's bottom with the top of the plot
-            y=1.1,             # Position above the chart
+            y=1.1,  # Position above the chart
             xanchor="center",  # Center-align the legend
-            x=0.5,             # Center position horizontally
+            x=0.5,  # Center position horizontally
         ),
     )
 
@@ -153,7 +152,9 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                     autocolorscale=False,
                     marker_line_color="red",  # Red border for the selected state
                     marker_line_width=2,  # Thicker border
-                    text=df["state_code"].map(state_map),  # Add state names to the hover info
+                    text=df["state_code"].map(
+                        state_map
+                    ),  # Add state names to the hover info
                     hoverinfo="text+z",  # Include hover info
                     showscale=False,  # No color scale for the highlight layer
                 )
@@ -202,8 +203,9 @@ def create_histogram(filtered_df, feature):
     return fig
 
 
-def create_timeline(df, period_column="incident_month", kpi="incident_rate", selected_state=None):
-
+def create_timeline(
+    df, period_column="incident_month", kpi="incident_rate", selected_state=None
+):
     # Define mappings for months and weekdays
     month_labels = {
         1: "January",
@@ -315,7 +317,7 @@ def create_timeline(df, period_column="incident_month", kpi="incident_rate", sel
     return fig
 
 
-def create_treemap(df, kpi, state):
+def create_treemap(df, kpi):
     # Filter data for treemap
     filtered_df = df.query(f"count > {df['count'].quantile(0.5)}")
     kpi_name = dropdown_options[kpi]
@@ -340,3 +342,93 @@ def create_treemap(df, kpi, state):
     )
 
     return fig
+
+
+def create_splom(df, kpi, selected_state=None):
+    fig = go.Figure()
+
+    # Check if a state is selected
+    if selected_state:
+        # Filter the dataframe for the selected state
+        selected_state_data = df[df["state_code"] == selected_state].iloc[0]
+
+        # Prepare constraintrange for each dimension
+        constraintranges = {
+            "state_code": [df["state_code"].cat.codes[df["state_code"] == selected_state].iloc[0]],
+            dropdown_options[kpi]: [selected_state_data[kpi]*0.99, selected_state_data[kpi]*1.01],
+            "death": [selected_state_data["death"]*0.99, selected_state_data["death"]*1.01],
+            "total_hours_worked": [selected_state_data["total_hours_worked"]*0.99, selected_state_data["total_hours_worked"]*1.01],
+            "annual_average_employees_median": [
+                selected_state_data["annual_average_employees_median"]*0.99,
+                selected_state_data["annual_average_employees_median"]*1.01,
+            ],
+            "dafw_num_away": [selected_state_data["dafw_num_away"]*0.99, selected_state_data["dafw_num_away"]*1.01],
+            "djtr_num_tr": [selected_state_data["djtr_num_tr"]*0.99, selected_state_data["djtr_num_tr"]*1.01],
+        }
+    else:
+        constraintranges = None  # No filtering if no state is selected
+
+    # Add the Parallel Coordinates trace
+    fig.add_trace(
+        go.Parcoords(
+            line=dict(
+                color=df["injury_density"],
+                colorscale="RdYlBu",
+                showscale=True,
+                reversescale=True,
+                colorbar=dict(
+                    title="Injury per worker",
+                    titlefont=dict(size=14),
+                ),
+            ),
+            dimensions=[
+                dict(
+                    label="State Code",
+                    values=df["state_code"].cat.codes,
+                    tickvals=list(range(len(df["state_code"].cat.categories))),
+                    ticktext=df["state_code"].cat.categories.map(state_map).tolist(),
+                    constraintrange=constraintranges["state_code"] if constraintranges else None,
+                ),
+                dict(
+                    label=dropdown_options[kpi],
+                    values=df[kpi],
+                    constraintrange=constraintranges[dropdown_options[kpi]] if constraintranges else None,
+                ),
+                dict(
+                    label="Total Deaths",
+                    values=df["death"],
+                    constraintrange=constraintranges["death"] if constraintranges else None,
+                ),
+                dict(
+                    label="Total Hours Worked",
+                    values=df["total_hours_worked"],
+                    constraintrange=constraintranges["total_hours_worked"] if constraintranges else None,
+                ),
+                dict(
+                    label="Annual Employees",
+                    values=df["annual_average_employees_median"],
+                    constraintrange=constraintranges["annual_average_employees_median"] if constraintranges else None,
+                ),
+                dict(
+                    label="Days Away from Work",
+                    values=df["dafw_num_away"],
+                    constraintrange=constraintranges["dafw_num_away"] if constraintranges else None,
+                ),
+                dict(
+                    label="Days Job Transfer/Restriction",
+                    values=df["djtr_num_tr"],
+                    constraintrange=constraintranges["djtr_num_tr"] if constraintranges else None,
+                ),
+            ],
+            unselected = dict(line = dict(color = 'gray', opacity = 0.15)),
+        )
+    )
+
+    # Update layout
+    fig.update_layout(
+        title=f"Parallel Coordinates Plot for {selected_state if selected_state else 'US'}",
+        height=800,
+    )
+
+    return fig
+

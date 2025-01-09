@@ -3,13 +3,21 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from flask import Flask
 
-from src.data import (prepare_bar_chart_data, prepare_radar_data,
-                      prepare_state_data, prepare_treemap_data)
+from src.data import (
+    prepare_bar_chart_data,
+    prepare_radar_data,
+    prepare_state_data,
+    prepare_treemap_data,
+)
 from src.layouts import main_layout
 from src.mappings import dropdown_options_rev
-from src.visualizations import (create_grouped_bar_chart, create_map,
-                                create_radar_chart, create_timeline,
-                                create_treemap)
+from src.visualizations import (
+    create_grouped_bar_chart,
+    create_map,
+    create_radar_chart,
+    create_splom,
+    create_treemap,
+)
 
 application = Flask(__name__)
 
@@ -49,7 +57,6 @@ def update_left_menu_visibility(tab_name):
 
 @app.callback(
     [
-        Output("bar-chart-size", "figure"),
         Output("bar-chart-sector", "figure"),
         Output("treemap-chart", "figure"),
         Output("bar-chart-soc", "figure"),
@@ -60,14 +67,17 @@ def update_left_menu_visibility(tab_name):
         Input("date-picker-range", "start_date"),
         Input("date-picker-range", "end_date"),
         Input("incident-filter-dropdown", "value"),
+        Input("splom-container", "dimensions"),
     ],
 )
-def update_bar_charts(click_data, state_code, start_date, end_date, incident_types):
+def update_bar_charts(
+    click_data, state_code, start_date, end_date, incident_types, restyleData
+):
+    print(restyleData)
     selected_kpi = "incident_rate"
     if click_data and "points" in click_data:
         selected_kpi = dropdown_options_rev[click_data["points"][0]["theta"]]
 
-    size_data = prepare_bar_chart_data(state_code, "size", selected_kpi, start_date, end_date, incident_types)
     establishment_type_data = prepare_bar_chart_data(
         state_code,
         "establishment_type",
@@ -76,7 +86,9 @@ def update_bar_charts(click_data, state_code, start_date, end_date, incident_typ
         end_date,
         incident_types,
     )
-    treemap_data = prepare_treemap_data(state_code, selected_kpi, start_date, end_date, incident_types)
+    treemap_data = prepare_treemap_data(
+        state_code, selected_kpi, start_date, end_date, incident_types
+    )
     type_of_incident_data = prepare_bar_chart_data(
         state_code,
         "type_of_incident",
@@ -87,10 +99,13 @@ def update_bar_charts(click_data, state_code, start_date, end_date, incident_typ
     )
 
     return (
-        create_grouped_bar_chart(size_data, "size", selected_kpi),
-        create_grouped_bar_chart(establishment_type_data, "establishment_type", selected_kpi),
-        create_treemap(treemap_data, "incident_rate", state_code),
-        create_grouped_bar_chart(type_of_incident_data, "type_of_incident", selected_kpi),
+        create_grouped_bar_chart(
+            establishment_type_data, "establishment_type", selected_kpi
+        ),
+        create_treemap(treemap_data, selected_kpi),
+        create_grouped_bar_chart(
+            type_of_incident_data, "type_of_incident", selected_kpi
+        ),
     )
 
 
@@ -135,9 +150,15 @@ def update_tab_contents(
     state_analysis_content = html.Div()
     metric_analysis_content = html.Div()
 
-    if tab_name == "state_analysis_tab" and start_date and end_date and kpi and time_period:
-        map_data, timeline_data = prepare_state_data(start_date, end_date, incident_types, time_period, kpi)
-        if not map_data.empty and not timeline_data.empty:
+    if (
+        tab_name == "state_analysis_tab"
+        and start_date
+        and end_date
+        and kpi
+        and time_period
+    ):
+        map_data = prepare_state_data(start_date, end_date, incident_types, kpi)
+        if not map_data.empty:
             state_analysis_content = html.Div(
                 style={
                     "display": "flex",
@@ -154,26 +175,25 @@ def update_tab_contents(
                         style={"flex": "1", "height": "500px"},
                     ),
                     html.Div(
-                        dcc.Graph(figure=create_timeline(timeline_data, time_period, kpi, selected_state)),
-                        style={"flex": "1", "height": "500px"},
+                        dcc.Graph(
+                            figure=create_splom(map_data, kpi, selected_state),
+                            id="splom-container",
+                        ),
+                        style={"flex": "1", "height": "800px"},
                     ),
                 ],
             )
         else:
-            state_analysis_content = html.Div(html.H2("No data for selected date range.", style="margin: 1em 2em"))
+            state_analysis_content = html.Div(
+                html.H2("No data for selected date range.", style="margin: 1em 2em")
+            )
 
     if tab_name == "metric_analysis_tab" and dropdown_state and start_date and end_date:
-        radar_chart_data = prepare_radar_data(dropdown_state, start_date, end_date, incident_types)
+        radar_chart_data = prepare_radar_data(
+            dropdown_state, start_date, end_date, incident_types
+        )
 
         if not radar_chart_data.empty:
-            size_data = prepare_bar_chart_data(
-                dropdown_state,
-                "size",
-                "incident_rate",
-                start_date,
-                end_date,
-                incident_types,
-            )
             establishment_type_data = prepare_bar_chart_data(
                 dropdown_state,
                 "establishment_type",
@@ -182,7 +202,9 @@ def update_tab_contents(
                 end_date,
                 incident_types,
             )
-            treemap_data = prepare_treemap_data(dropdown_state, "incident_rate", start_date, end_date, incident_types)
+            treemap_data = prepare_treemap_data(
+                dropdown_state, "incident_rate", start_date, end_date, incident_types
+            )
             type_of_incident_data = prepare_bar_chart_data(
                 dropdown_state,
                 "type_of_incident",
@@ -210,7 +232,9 @@ def update_tab_contents(
                         },
                         children=[
                             dcc.Graph(
-                                figure=create_radar_chart(radar_chart_data, dropdown_state),
+                                figure=create_radar_chart(
+                                    radar_chart_data, dropdown_state
+                                ),
                                 id="radar-chart",
                             ),
                         ],
@@ -226,10 +250,6 @@ def update_tab_contents(
                         },
                         children=[
                             dcc.Graph(
-                                figure=create_grouped_bar_chart(size_data, "size", "incident_rate"),
-                                id="bar-chart-size",
-                            ),
-                            dcc.Graph(
                                 figure=create_grouped_bar_chart(
                                     establishment_type_data,
                                     "establishment_type",
@@ -238,7 +258,7 @@ def update_tab_contents(
                                 id="bar-chart-sector",
                             ),
                             dcc.Graph(
-                                figure=create_treemap(treemap_data, "incident_rate", dropdown_state),
+                                figure=create_treemap(treemap_data, "incident_rate"),
                                 id="treemap-chart",
                             ),
                             dcc.Graph(
@@ -254,7 +274,9 @@ def update_tab_contents(
                 ],
             )
         else:
-            metric_analysis_content = html.Div("No data available for the selected feature.")
+            metric_analysis_content = html.Div(
+                "No data available for the selected feature."
+            )
 
     return state_analysis_content, metric_analysis_content
 
