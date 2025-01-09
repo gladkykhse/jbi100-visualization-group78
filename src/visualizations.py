@@ -63,7 +63,13 @@ def create_radar_chart(df, dropdown_state):
 
     # Update chart layout
     fig.update_layout(
-        title_text=f"{state_map[dropdown_state]} Safety Profile",
+        title={
+        "text": f"{state_map[dropdown_state]} Safety Profile",
+        "x": 0.5,         # Horizontally center the title
+        "y": 0.98,        # Push it a bit down from the top
+        "xanchor": "center",
+        "yanchor": "middle",
+        },
         polar=dict(
             radialaxis=dict(
                 visible=False,

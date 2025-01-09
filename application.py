@@ -158,28 +158,66 @@ def update_tab_contents(
         and time_period
     ):
         map_data = prepare_state_data(start_date, end_date, incident_types, kpi)
+
+        if (selected_state!=None):
+            dropdown_state=selected_state
+
+        radar_chart_data = prepare_radar_data(
+            dropdown_state, start_date, end_date, incident_types
+        )
+
         if not map_data.empty:
             state_analysis_content = html.Div(
                 style={
                     "display": "flex",
-                    "justifyContent": "space-between",
-                    "flexDirection": "column",
+                    "flexDirection": "column",  # Stack rows vertically
                     "padding": "10px",
                 },
                 children=[
+                    # Row 1: Radar (left) and Map (right)
                     html.Div(
-                        dcc.Graph(
-                            figure=create_map(map_data, kpi, selected_state),
-                            id="map-container",
-                        ),
-                        style={"flex": "1", "height": "500px"},
+                        style={
+                            "display": "flex",
+                            "flexDirection": "row",  # Place children side by side
+                            "width": "100%",
+                        },
+                        children=[
+                            html.Div(
+                                style={"width": "50%", "padding": "5px", },
+                                children=[
+                                    dcc.Graph(
+                                        figure=create_radar_chart(
+                                            radar_chart_data, dropdown_state
+                                        ),
+                                        id="radar-chart",
+                                    ),
+                                ],
+                            ),
+                            html.Div(
+                                style={"width": "50%", "padding": "5px"},
+                                children=[
+                                    dcc.Graph(
+                                        figure=create_map(map_data, kpi, selected_state),
+                                        id="map-container",
+                                    ),
+                                ],
+                            ),
+                        ],
                     ),
+
+                    # Row 2: The splom below
                     html.Div(
-                        dcc.Graph(
-                            figure=create_splom(map_data, kpi, selected_state),
-                            id="splom-container",
-                        ),
-                        style={"flex": "1", "height": "800px"},
+                        style={
+                            "width": "100%",
+                            "height": "800px",
+                            "marginTop": "20px",
+                        },
+                        children=[
+                            dcc.Graph(
+                                figure=create_splom(map_data, kpi, selected_state),
+                                id="splom-container",
+                            )
+                        ],
                     ),
                 ],
             )
