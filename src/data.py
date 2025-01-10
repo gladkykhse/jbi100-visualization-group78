@@ -58,7 +58,7 @@ def reduce_mem_usage(df):
     end_mem = df.memory_usage().sum() / 1024**2
     print("Memory usage after optimization is: {:.2f} MB".format(end_mem))
     print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
-
+    print(df.info())
     return df
 
 
@@ -261,6 +261,7 @@ def prepare_mean_radar_data(radar_region_safety_score):
         radar_region_safety_score[f"mean_{col}"] = mean_values[col]
 
     return radar_region_safety_score
+
 
 
 def calculate_mean_values(min_metric_values,max_metric_values,metrics,mean_values):

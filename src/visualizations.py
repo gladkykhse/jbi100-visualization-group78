@@ -1,6 +1,8 @@
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.colors import diverging
+import numpy as np
+import pandas as pd
 
 from src.mappings import dropdown_options, state_map
 
@@ -10,18 +12,17 @@ def transform_kpi_names(s):
     return " ".join(map(str.capitalize, s.split("_")))
 
 
+def preprocess_radar_data(df):
+    df["formatted_kpi"] = df["kpi"].apply(transform_kpi_names)
+    df_closed = pd.concat([df, df.iloc[[0]]], ignore_index=True)
+    return df_closed
+
 def create_radar_chart(df, dropdown_state):
     fig = go.Figure()
 
-    df["formatted_kpi"] = df["kpi"].apply(transform_kpi_names)
-
-    # Determine best and worst KPIs
-    worst_kpi = df.at[df["value"].idxmax(), "formatted_kpi"]
-    best_kpi = df.at[df["value"].idxmin(), "formatted_kpi"]
-    try:
-        df_closed = df.copy()._append(df.iloc[0], ignore_index=True)
-    except Exception:
-        df_closed = df
+    df_closed = preprocess_radar_data(df)
+    worst_kpi = df_closed.loc[df_closed["value"].idxmax(), "formatted_kpi"]
+    best_kpi = df_closed.loc[df_closed["value"].idxmin(), "formatted_kpi"]
 
     # Add trace for scaled values
     fig.add_trace(
@@ -252,7 +253,11 @@ def create_timeline(
         df["period_label"] = df[period_column].astype("string")
 
     # Prepare average data
-    avg_df = df.groupby(period_column, as_index=False)[kpi].mean()
+    #avg_df = df.groupby(period_column, as_index=False)[kpi].mean()
+    unique_periods = np.unique(df["period_column"].to_numpy())
+    means = [df[df["period_column"] == period][kpi].mean() for period in unique_periods]
+    avg_df = pd.DataFrame({"period_column": unique_periods, kpi: means})
+
 
     # Add a descriptive label to the average dataframe for proper labeling
     if period_column in ["incident_month", "incident_weekday"]:
@@ -333,7 +338,11 @@ def create_timeline(
 
 def create_treemap(df, kpi):
     # Filter data for treemap
-    filtered_df = df.query(f"count > {df['count'].quantile(0.5)}")
+    #filtered_df = df.query(f"count > {df['count'].quantile(0.5)}")
+
+    threshold = np.percentile(df['count'].to_numpy(), 50)  # 50th percentile
+    filtered_df = df[df['count'].to_numpy() > threshold]
+
     kpi_name = dropdown_options[kpi]
     # Create the treemap with hover information
     fig = px.treemap(
