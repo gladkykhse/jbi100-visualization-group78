@@ -263,7 +263,6 @@ def prepare_mean_radar_data(radar_region_safety_score):
     return radar_region_safety_score
 
 
-
 def calculate_mean_values(min_metric_values,max_metric_values,metrics,mean_values):
     return([
         (mean_value - min_metric_values[metric])
