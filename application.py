@@ -78,6 +78,38 @@ def update_left_menu_visibility(tab_name):
 )
 
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
+def prepare_scatter_plot_cached(state_code, start_date, end_date,incident_types):
+    scatter_plot_data, incident_outcomes = prepare_scatter_plot(
+            state_code,
+            start_date,
+            end_date,
+            incident_types,
+        )
+    return scatter_plot_data, incident_outcomes
+
+@cache.memoize(timeout=600)  # Cache result for 10 minutes
+def prepare_treemap_data_cached(state_code, selected_kpi, start_date, end_date, incident_types):
+    return prepare_treemap_data(
+        state_code, selected_kpi, start_date, end_date, incident_types
+    )
+
+@cache.memoize(timeout=600)  # Cache result for 10 minutes
+def prepare_stacked_bar_chart_cached(state_code, start_date, end_date, incident_types):
+    return prepare_stacked_bar_chart(
+        state_code, start_date, end_date, incident_types
+    )
+
+@cache.memoize(timeout=600)  # Cache result for 10 minutes
+def prepare_radar_data_cached(dropdown_state, start_date, end_date, incident_types):
+        return prepare_radar_data(
+            dropdown_state, start_date, end_date, incident_types
+        )
+
+@cache.memoize(timeout=600)  # Cache result for 10 minutes
+def prepare_state_data_cached(start_date, end_date, incident_types, kpi):
+    return prepare_state_data(start_date, end_date, incident_types, kpi)
+
+
 def update_bar_charts(
     click_data, state_code, start_date, end_date, incident_types, restyleData
 ):
@@ -85,16 +117,13 @@ def update_bar_charts(
     if click_data and "points" in click_data:
         selected_kpi = dropdown_options_rev[click_data["points"][0]["theta"]]
 
-    scatter_plot_data, incident_outcomes = prepare_scatter_plot(
-        state_code,
-        start_date,
-        end_date,
-        incident_types,
-    )
-    treemap_data = prepare_treemap_data(
+    scatter_plot_data, incident_outcomes = prepare_scatter_plot_cached(state_code, start_date, end_date,incident_types)
+    
+    treemap_data = prepare_treemap_data_cached(
         state_code, selected_kpi, start_date, end_date, incident_types
     )
-    stacked_bar_chart = prepare_stacked_bar_chart(
+
+    stacked_bar_chart = prepare_stacked_bar_chart_cached(
         state_code, start_date, end_date, incident_types
     )
 
@@ -155,12 +184,12 @@ def update_tab_contents(
         and kpi
         and time_period
     ):
-        map_data = prepare_state_data(start_date, end_date, incident_types, kpi)
+        map_data = prepare_state_data_cached(start_date, end_date, incident_types, kpi)
 
         if selected_state is not None:
             dropdown_state = selected_state
 
-        radar_chart_data = prepare_radar_data(
+        radar_chart_data = prepare_radar_data_cached(
             dropdown_state, start_date, end_date, incident_types
         )
 
@@ -232,21 +261,21 @@ def update_tab_contents(
             )
 
     if tab_name == "metric_analysis_tab" and dropdown_state and start_date and end_date:
-        radar_chart_data = prepare_radar_data(
+        radar_chart_data = prepare_radar_data_cached(
             dropdown_state, start_date, end_date, incident_types
         )
 
         if not radar_chart_data.empty:
-            scatter_plot_data, incident_outcomes = prepare_scatter_plot(
+            scatter_plot_data, incident_outcomes = prepare_scatter_plot_cached(
                 dropdown_state,
                 start_date,
                 end_date,
                 incident_types,
             )
-            treemap_data = prepare_treemap_data(
+            treemap_data = prepare_treemap_data_cached(
                 dropdown_state, "incident_rate", start_date, end_date, incident_types
             )
-            stacked_bar_chart = prepare_stacked_bar_chart(
+            stacked_bar_chart = prepare_stacked_bar_chart_cached(
                 dropdown_state, start_date, end_date, incident_types
             )
 
