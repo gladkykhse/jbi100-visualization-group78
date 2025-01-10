@@ -2,6 +2,7 @@ import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from flask import Flask
+from flask_caching import Cache
 
 from src.data import (
     prepare_radar_data,
@@ -23,6 +24,8 @@ from src.visualizations import (
 )
 
 application = Flask(__name__)
+cache = Cache(application, config={"CACHE_TYPE": "SimpleCache"})  # Use "RedisCache" for production
+
 
 app = dash.Dash(__name__, server=application)
 app.layout = main_layout
@@ -73,6 +76,8 @@ def update_left_menu_visibility(tab_name):
         Input("splom-container", "dimensions"),
     ],
 )
+
+@cache.memoize(timeout=600)  # Cache result for 10 minutes
 def update_bar_charts(
     click_data, state_code, start_date, end_date, incident_types, restyleData
 ):
@@ -128,6 +133,8 @@ def update_selected_state(click_data, current_state):
         Input("state-dropdown", "value"),
     ],
 )
+
+@cache.memoize(timeout=600)  # Cache result for 10 minutes
 def update_tab_contents(
     tab_name,
     start_date,
