@@ -5,6 +5,7 @@ import pandas as pd
 
 ### IN CASE OF NOT LOADING DATAFRAME
 
+
 def reduce_mem_usage(df):
     """iterate through all the columns of a dataframe and modify the data type
     to reduce memory usage.
@@ -58,6 +59,7 @@ def reduce_mem_usage(df):
     print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
 
     return df
+
 
 try:
     data = pd.read_parquet("datasets/processed_data.parquet")
@@ -390,3 +392,55 @@ def prepare_treemap_data(state_code, kpi, start_date, end_date, incident_types):
         )
         .reset_index()
     )
+
+
+def prepare_scatter_plot(state, start_date, end_date, filter_incident_types):
+    filtered_data = filter_data(data, start_date, end_date, filter_incident_types)
+
+    # Filter data for the state of Ohio
+    aggregated_data = (
+        filtered_data.query("state_code == @state")
+        .groupby("soc_description_4", observed=True)
+        .agg(
+            {
+                "time_started_work": "mean",
+                "time_of_incident": "mean",
+                "incident_outcome": lambda x: x.mode().iloc[0],
+            }
+        )
+        .reset_index()
+    )
+
+    # Format time for hover information
+    aggregated_data["time_started_work_str"] = aggregated_data[
+        "time_started_work"
+    ].dt.strftime("%H:%M")
+    aggregated_data["time_of_incident_str"] = aggregated_data[
+        "time_of_incident"
+    ].dt.strftime("%H:%M")
+
+    # Unique incident outcomes
+    incident_outcomes = aggregated_data["incident_outcome"].unique()
+    return aggregated_data, incident_outcomes
+
+
+def prepare_stacked_bar_chart(state, start_date, end_date, filter_incident_types):
+    filtered_data = filter_data(
+        data, start_date, end_date, filter_incident_types
+    ).query("state_code == @state")
+
+    # Aggregate the data: count incidents by type and establishment
+    aggregated_data = (
+        filtered_data.groupby(["type_of_incident", "incident_outcome"])
+        .size()
+        .reset_index(name="count")
+    )
+
+    # Pivot the data for a stacked bar chart structure
+    pivot_data = aggregated_data.pivot(
+        index="type_of_incident", columns="incident_outcome", values="count"
+    ).fillna(0)
+    # Normalize the data by row (each type_of_incident adds up to 1)
+    pivot_data_normalized = pivot_data.div(pivot_data.sum(axis=1), axis=0).reset_index()
+
+    return pivot_data_normalized

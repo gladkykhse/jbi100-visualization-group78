@@ -4,8 +4,9 @@ from dash.dependencies import Input, Output, State
 from flask import Flask
 
 from src.data import (
-    prepare_bar_chart_data,
     prepare_radar_data,
+    prepare_scatter_plot,
+    prepare_stacked_bar_chart,
     prepare_state_data,
     prepare_treemap_data,
 )
@@ -15,8 +16,10 @@ from src.visualizations import (
     create_grouped_bar_chart,
     create_map,
     create_radar_chart,
+    create_scatter_plot,
     create_splom,
     create_treemap,
+    create_stacked_bar_chart
 )
 
 application = Flask(__name__)
@@ -73,15 +76,12 @@ def update_left_menu_visibility(tab_name):
 def update_bar_charts(
     click_data, state_code, start_date, end_date, incident_types, restyleData
 ):
-    print(restyleData)
     selected_kpi = "incident_rate"
     if click_data and "points" in click_data:
         selected_kpi = dropdown_options_rev[click_data["points"][0]["theta"]]
 
-    establishment_type_data = prepare_bar_chart_data(
+    scatter_plot_data, incident_outcomes = prepare_scatter_plot(
         state_code,
-        "establishment_type",
-        selected_kpi,
         start_date,
         end_date,
         incident_types,
@@ -89,23 +89,14 @@ def update_bar_charts(
     treemap_data = prepare_treemap_data(
         state_code, selected_kpi, start_date, end_date, incident_types
     )
-    type_of_incident_data = prepare_bar_chart_data(
-        state_code,
-        "type_of_incident",
-        selected_kpi,
-        start_date,
-        end_date,
-        incident_types,
+    stacked_bar_chart = prepare_stacked_bar_chart(
+        state_code, start_date, end_date, incident_types
     )
 
     return (
-        create_grouped_bar_chart(
-            establishment_type_data, "establishment_type", selected_kpi
-        ),
+        create_scatter_plot(scatter_plot_data, incident_outcomes, state_code),
         create_treemap(treemap_data, selected_kpi),
-        create_grouped_bar_chart(
-            type_of_incident_data, "type_of_incident", selected_kpi
-        ),
+        create_stacked_bar_chart(stacked_bar_chart, state_code),
     )
 
 
@@ -159,8 +150,8 @@ def update_tab_contents(
     ):
         map_data = prepare_state_data(start_date, end_date, incident_types, kpi)
 
-        if (selected_state!=None):
-            dropdown_state=selected_state
+        if selected_state is not None:
+            dropdown_state = selected_state
 
         radar_chart_data = prepare_radar_data(
             dropdown_state, start_date, end_date, incident_types
@@ -183,7 +174,10 @@ def update_tab_contents(
                         },
                         children=[
                             html.Div(
-                                style={"width": "50%", "padding": "5px", },
+                                style={
+                                    "width": "50%",
+                                    "padding": "5px",
+                                },
                                 children=[
                                     dcc.Graph(
                                         figure=create_radar_chart(
@@ -197,14 +191,15 @@ def update_tab_contents(
                                 style={"width": "50%", "padding": "5px"},
                                 children=[
                                     dcc.Graph(
-                                        figure=create_map(map_data, kpi, selected_state),
+                                        figure=create_map(
+                                            map_data, kpi, selected_state
+                                        ),
                                         id="map-container",
                                     ),
                                 ],
                             ),
                         ],
                     ),
-
                     # Row 2: The splom below
                     html.Div(
                         style={
@@ -232,10 +227,8 @@ def update_tab_contents(
         )
 
         if not radar_chart_data.empty:
-            establishment_type_data = prepare_bar_chart_data(
+            scatter_plot_data, incident_outcomes = prepare_scatter_plot(
                 dropdown_state,
-                "establishment_type",
-                "incident_rate",
                 start_date,
                 end_date,
                 incident_types,
@@ -243,13 +236,8 @@ def update_tab_contents(
             treemap_data = prepare_treemap_data(
                 dropdown_state, "incident_rate", start_date, end_date, incident_types
             )
-            type_of_incident_data = prepare_bar_chart_data(
-                dropdown_state,
-                "type_of_incident",
-                "incident_rate",
-                start_date,
-                end_date,
-                incident_types,
+            stacked_bar_chart = prepare_stacked_bar_chart(
+                dropdown_state, start_date, end_date, incident_types
             )
 
             metric_analysis_content = html.Div(
@@ -262,21 +250,21 @@ def update_tab_contents(
                 },
                 children=[
                     # Radar chart
-                    html.Div(
-                        style={
-                            "width": "100%",
-                            "paddingRight": "10px",
-                            "height": "500px",
-                        },
-                        children=[
-                            dcc.Graph(
-                                figure=create_radar_chart(
-                                    radar_chart_data, dropdown_state
-                                ),
-                                id="radar-chart",
-                            ),
-                        ],
-                    ),
+                    # html.Div(
+                    #     style={
+                    #         "width": "100%",
+                    #         "paddingRight": "10px",
+                    #         "height": "500px",
+                    #     },
+                    #     children=[
+                    #         dcc.Graph(
+                    #             figure=create_radar_chart(
+                    #                 radar_chart_data, dropdown_state
+                    #             ),
+                    #             id="radar-chart",
+                    #         ),
+                    #     ],
+                    # ),
                     # Bar charts
                     html.Div(
                         style={
@@ -288,10 +276,10 @@ def update_tab_contents(
                         },
                         children=[
                             dcc.Graph(
-                                figure=create_grouped_bar_chart(
-                                    establishment_type_data,
-                                    "establishment_type",
-                                    "incident_rate",
+                                figure=create_scatter_plot(
+                                    scatter_plot_data,
+                                    incident_outcomes,
+                                    dropdown_state,
                                 ),
                                 id="bar-chart-sector",
                             ),
@@ -300,10 +288,8 @@ def update_tab_contents(
                                 id="treemap-chart",
                             ),
                             dcc.Graph(
-                                figure=create_grouped_bar_chart(
-                                    type_of_incident_data,
-                                    "type_of_incident",
-                                    "incident_rate",
+                                figure=create_stacked_bar_chart(
+                                    stacked_bar_chart, dropdown_state
                                 ),
                                 id="bar-chart-soc",
                             ),

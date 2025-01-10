@@ -441,3 +441,75 @@ def create_splom(df, kpi, selected_state=None):
 
     return fig
 
+def create_scatter_plot(df, incident_outcomes, selected_state):
+    fig = go.Figure()
+
+    # Add a separate trace for each incident_outcome
+    for outcome in incident_outcomes:
+        subset = df[df['incident_outcome'] == outcome]
+        fig.add_trace(
+            go.Scatter(
+                x=subset['time_started_work'].dt.hour + subset['time_started_work'].dt.minute / 60,
+                y=subset['time_of_incident'].dt.hour + subset['time_of_incident'].dt.minute / 60,
+                mode='markers',
+                marker=dict(
+                    size=10,  # Set a fixed size for all points
+                    opacity=0.6,  # Set opacity
+                ),
+                name=outcome,  # Add incident outcome as the trace name
+                text=subset['soc_description_4'],  # Use SOC description for hover
+                hovertemplate=(
+                    '<b>Job Description:</b> %{text}<br>'
+                    '<b>Time Started Work:</b> %{customdata[0]}<br>'
+                    '<b>Time of Incident:</b> %{customdata[1]}<br>'
+                    '<extra></extra>'
+                ),
+                customdata=subset[['time_started_work_str', 'time_of_incident_str']].values
+            )
+        )
+
+    # Update layout
+    fig.update_layout(
+        title=f"Time Started Work vs Time of Incident in {state_map[selected_state]}",
+        xaxis=dict(title="Time Started Work (Hours)"),
+        yaxis=dict(title="Time of Incident (Hours)"),
+        legend=dict(
+            title="Incident Outcome",
+            orientation="h",  # Horizontal legend
+            yanchor="bottom",  # Anchor to the bottom
+            y=-0.4,  # Position below the plot area
+            xanchor="center",  # Center horizontally
+            x=0.5  # Center of the graph
+        ),
+    )
+    return fig
+
+
+def create_stacked_bar_chart(df, selected_state):
+    fig = go.Figure()
+
+    # Add a bar trace for each establishment type
+    for establishment in df.columns[1:]:  # Skip the 'type_of_incident' column
+        fig.add_trace(go.Bar(
+            y=df['type_of_incident'],
+            x=df[establishment],
+            name=establishment,
+            orientation='h',
+            text=(df[establishment] * 100).round(1).astype(str) + '%',  # Display percentages
+            textposition='inside',
+            marker=dict(line=dict(width=0.5, color='rgb(248, 248, 249)'))
+        ))
+
+    # Update layout
+    fig.update_layout(
+        barmode='stack',
+        title=f"Proportion of Incidents by Type and Establishment Type in {state_map[selected_state]}",
+        xaxis=dict(title="Proportion of Incidents", tickformat=".0%"),
+        yaxis=dict(title="Type of Incident"),
+        paper_bgcolor='rgb(248, 248, 255)',
+        plot_bgcolor='rgb(248, 248, 255)',
+        margin=dict(l=120, r=10, t=140, b=80),
+        showlegend=True,
+        legend=dict(orientation='h', x=0.5, xanchor='center', y=-0.2),
+    )
+    return fig
