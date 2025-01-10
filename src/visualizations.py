@@ -4,6 +4,7 @@ from plotly.colors import diverging
 
 from src.mappings import dropdown_options, state_map
 
+from plotly_resampler import FigureResampler
 
 def transform_kpi_names(s):
     return " ".join(map(str.capitalize, s.split("_")))
@@ -264,6 +265,7 @@ def create_timeline(
     # Create the figure
     fig = go.Figure()
 
+
     # Add traces for all states (blue points)
     for state in df["state_code"].unique():
         if state != selected_state:  # Add all states except the selected one
@@ -356,6 +358,7 @@ def create_treemap(df, kpi):
 def create_splom(df, kpi, selected_state=None):
     fig = go.Figure()
 
+
     # Check if a state is selected
     if selected_state:
         # Filter the dataframe for the selected state
@@ -444,6 +447,7 @@ def create_splom(df, kpi, selected_state=None):
 def create_scatter_plot(df, incident_outcomes, selected_state):
     fig = go.Figure()
 
+
     # Add a separate trace for each incident_outcome
     for outcome in incident_outcomes:
         subset = df[df['incident_outcome'] == outcome]
@@ -487,6 +491,7 @@ def create_scatter_plot(df, incident_outcomes, selected_state):
 
 def create_stacked_bar_chart(df, selected_state):
     fig = go.Figure()
+
 
     # Add a bar trace for each establishment type
     for establishment in df.columns[1:]:  # Skip the 'type_of_incident' column

@@ -3,8 +3,9 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-### IN CASE OF NOT LOADING DATAFRAME
+from numba import njit, jit
 
+### IN CASE OF NOT LOADING DATAFRAME
 
 def reduce_mem_usage(df):
     """iterate through all the columns of a dataframe and modify the data type
@@ -72,6 +73,7 @@ except Exception:
     data["death"] = data["date_of_death"].notna().astype(np.int32)
 
     data = reduce_mem_usage(data)
+    
 
 
 incident_types = sorted(data["type_of_incident"].unique())
@@ -261,6 +263,15 @@ def prepare_mean_radar_data(radar_region_safety_score):
     return radar_region_safety_score
 
 
+def calculate_mean_values(min_metric_values,max_metric_values,metrics,mean_values):
+    return([
+        (mean_value - min_metric_values[metric])
+        / (max_metric_values[metric] - min_metric_values[metric])
+        if max_metric_values[metric] > min_metric_values[metric]
+        else 0
+        for metric, mean_value in zip(metrics, mean_values)
+    ])
+
 def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
     filtered_data = filter_data(data, start_date, end_date, filter_incident_types)
 
@@ -296,19 +307,8 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
     mean_values = [
         radar_region_safety_score[f"mean_{metric}"].iloc[0] for metric in metrics
     ]
-    # Calculate scaled mean values
-    # scaled_mean_values = [
-    #     radar_region_safety_score[f"mean_{metric}"].iloc[0] / metric_values[metric]
-    #     if metric_values[metric] != 0 else 0
-    #     for metric in metrics
-    # ]
-    scaled_mean_values = [
-        (mean_value - min_metric_values[metric])
-        / (max_metric_values[metric] - min_metric_values[metric])
-        if max_metric_values[metric] > min_metric_values[metric]
-        else 0
-        for metric, mean_value in zip(metrics, mean_values)
-    ]
+
+    scaled_mean_values=calculate_mean_values(min_metric_values,max_metric_values,metrics,mean_values)
 
     # Construct radar data
     radar_data = {
@@ -319,6 +319,7 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
         "scaled_mean_value": scaled_mean_values,
     }
     return pd.DataFrame(radar_data)
+
 
 
 def prepare_state_data(

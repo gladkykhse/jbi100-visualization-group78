@@ -178,25 +178,25 @@ def update_tab_contents(
                                     "width": "50%",
                                     "padding": "5px",
                                 },
-                                children=[
+                                children=[dcc.Loading(children=[
                                     dcc.Graph(
                                         figure=create_radar_chart(
                                             radar_chart_data, dropdown_state
                                         ),
                                         id="radar-chart",
                                     ),
-                                ],
+                                ])],
                             ),
                             html.Div(
                                 style={"width": "50%", "padding": "5px"},
-                                children=[
+                                children=[dcc.Loading(children=[
                                     dcc.Graph(
                                         figure=create_map(
                                             map_data, kpi, selected_state
                                         ),
                                         id="map-container",
                                     ),
-                                ],
+                                ])],
                             ),
                         ],
                     ),
@@ -207,13 +207,16 @@ def update_tab_contents(
                             "height": "800px",
                             "marginTop": "20px",
                         },
+                        children=[dcc.Loading(
                         children=[
                             dcc.Graph(
                                 figure=create_splom(map_data, kpi, selected_state),
                                 id="splom-container",
-                            )
-                        ],
-                    ),
+                                    )
+                                ],
+                                            )
+                                ]
+                            ),
                 ],
             )
         else:
@@ -249,23 +252,6 @@ def update_tab_contents(
                     "padding": "1rem",
                 },
                 children=[
-                    # Radar chart
-                    # html.Div(
-                    #     style={
-                    #         "width": "100%",
-                    #         "paddingRight": "10px",
-                    #         "height": "500px",
-                    #     },
-                    #     children=[
-                    #         dcc.Graph(
-                    #             figure=create_radar_chart(
-                    #                 radar_chart_data, dropdown_state
-                    #             ),
-                    #             id="radar-chart",
-                    #         ),
-                    #     ],
-                    # ),
-                    # Bar charts
                     html.Div(
                         style={
                             "display": "grid",
@@ -275,6 +261,7 @@ def update_tab_contents(
                             "minHeight": "1000px",  # Set minimum height for the grid
                         },
                         children=[
+                            dcc.Loading(children=[
                             dcc.Graph(
                                 figure=create_scatter_plot(
                                     scatter_plot_data,
@@ -282,17 +269,19 @@ def update_tab_contents(
                                     dropdown_state,
                                 ),
                                 id="bar-chart-sector",
-                            ),
+                            )]),
+                            dcc.Loading(children=[
                             dcc.Graph(
                                 figure=create_treemap(treemap_data, "incident_rate"),
                                 id="treemap-chart",
-                            ),
+                            )]),
+                            dcc.Loading(children=[
                             dcc.Graph(
                                 figure=create_stacked_bar_chart(
                                     stacked_bar_chart, dropdown_state
                                 ),
                                 id="bar-chart-soc",
-                            ),
+                            )]),
                         ],
                     ),
                 ],
