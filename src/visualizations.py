@@ -127,7 +127,8 @@ def create_map(df, kpi="incident_rate", selected_state=None):
     min_state_text = f"<b>Lowest {kpi_naming}</b>: {state_map[min_kpi_state['state_code']]} ({min_kpi_state[kpi]:.2f})"
 
     # Create the base map
-    fig = go.Figure(
+
+    fig = FigureResampler(go.Figure(
         data=go.Choropleth(
             locations=df["state_code"],
             z=df[kpi],
@@ -142,6 +143,7 @@ def create_map(df, kpi="incident_rate", selected_state=None):
             text=df["state_code"].map(state_map),  # Add state names to the hover info
             hoverinfo="text+z",
         )
+    )
     )
 
     # Add a highlight for the selected state
@@ -263,7 +265,8 @@ def create_timeline(
     kpi_name = dropdown_options[kpi]
 
     # Create the figure
-    fig = go.Figure()
+    fig = FigureResampler(go.Figure())
+
 
 
     # Add traces for all states (blue points)
@@ -356,7 +359,8 @@ def create_treemap(df, kpi):
 
 
 def create_splom(df, kpi, selected_state=None):
-    fig = go.Figure()
+    fig = FigureResampler(go.Figure())
+
 
 
     # Check if a state is selected
@@ -445,7 +449,8 @@ def create_splom(df, kpi, selected_state=None):
     return fig
 
 def create_scatter_plot(df, incident_outcomes, selected_state):
-    fig = go.Figure()
+    fig = FigureResampler(go.Figure())
+
 
 
     # Add a separate trace for each incident_outcome
@@ -490,7 +495,8 @@ def create_scatter_plot(df, incident_outcomes, selected_state):
 
 
 def create_stacked_bar_chart(df, selected_state):
-    fig = go.Figure()
+    fig = FigureResampler(go.Figure())
+
 
 
     # Add a bar trace for each establishment type
