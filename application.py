@@ -14,51 +14,52 @@ from src.data import (
 from src.layouts import main_layout
 from src.mappings import dropdown_options_rev
 from src.visualizations import (
-    create_grouped_bar_chart,
     create_map,
     create_radar_chart,
     create_scatter_plot,
     create_splom,
+    create_stacked_bar_chart,
     create_treemap,
-    create_stacked_bar_chart
 )
 
 application = Flask(__name__)
-cache = Cache(application, config={"CACHE_TYPE": "SimpleCache"})  # Use "RedisCache" for production
+cache = Cache(
+    application, config={"CACHE_TYPE": "SimpleCache"}
+)  # Use "RedisCache" for production
 
 
 app = dash.Dash(__name__, server=application)
 app.layout = main_layout
 
 
-@app.callback(
-    [
-        Output("date-picker-container", "style"),
-        Output("incident-filter-container", "style"),
-        Output("time-period-container", "style"),
-        Output("kpi-select-container", "style"),
-        Output("state-dropdown-container", "style"),
-    ],
-    [Input("tabs", "value")],
-)
-def update_left_menu_visibility(tab_name):
-    if tab_name == "state_analysis_tab":
-        return (
-            {"display": "block"},
-            {"display": "block"},
-            {"display": "block"},
-            {"display": "block"},
-            {"display": "none"},
-        )
-    elif tab_name == "metric_analysis_tab":
-        return (
-            {"display": "block"},
-            {"display": "block"},
-            {"display": "none"},
-            {"display": "none"},
-            {"display": "block"},
-        )
-    return {"display": "none"}, {"display": "none"}
+# @app.callback(
+#     [
+#         Output("date-picker-container", "style"),
+#         Output("incident-filter-container", "style"),
+#         Output("time-period-container", "style"),
+#         Output("kpi-select-container", "style"),
+#         Output("state-dropdown-container", "style"),
+#     ],
+#     [Input("tabs", "value")],
+# )
+# def update_left_menu_visibility(tab_name):
+#     if tab_name == "state_analysis_tab":
+#         return (
+#             {"display": "block"},
+#             {"display": "block"},
+#             {"display": "block"},
+#             {"display": "block"},
+#             {"display": "none"},
+#         )
+#     elif tab_name == "metric_analysis_tab":
+#         return (
+#             {"display": "block"},
+#             {"display": "block"},
+#             {"display": "none"},
+#             {"display": "none"},
+#             {"display": "block"},
+#         )
+#     return {"display": "none"}, {"display": "none"}
 
 
 @app.callback(
@@ -76,34 +77,35 @@ def update_left_menu_visibility(tab_name):
         Input("splom-container", "dimensions"),
     ],
 )
-
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
-def prepare_scatter_plot_cached(state_code, start_date, end_date,incident_types):
+def prepare_scatter_plot_cached(state_code, start_date, end_date, incident_types):
     scatter_plot_data, incident_outcomes = prepare_scatter_plot(
-            state_code,
-            start_date,
-            end_date,
-            incident_types,
-        )
+        state_code,
+        start_date,
+        end_date,
+        incident_types,
+    )
     return scatter_plot_data, incident_outcomes
 
+
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
-def prepare_treemap_data_cached(state_code, selected_kpi, start_date, end_date, incident_types):
+def prepare_treemap_data_cached(
+    state_code, selected_kpi, start_date, end_date, incident_types
+):
     return prepare_treemap_data(
         state_code, selected_kpi, start_date, end_date, incident_types
     )
 
+
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
 def prepare_stacked_bar_chart_cached(state_code, start_date, end_date, incident_types):
-    return prepare_stacked_bar_chart(
-        state_code, start_date, end_date, incident_types
-    )
+    return prepare_stacked_bar_chart(state_code, start_date, end_date, incident_types)
+
 
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
 def prepare_radar_data_cached(dropdown_state, start_date, end_date, incident_types):
-        return prepare_radar_data(
-            dropdown_state, start_date, end_date, incident_types
-        )
+    return prepare_radar_data(dropdown_state, start_date, end_date, incident_types)
+
 
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
 def prepare_state_data_cached(start_date, end_date, incident_types, kpi):
@@ -117,8 +119,10 @@ def update_bar_charts(
     if click_data and "points" in click_data:
         selected_kpi = dropdown_options_rev[click_data["points"][0]["theta"]]
 
-    scatter_plot_data, incident_outcomes = prepare_scatter_plot_cached(state_code, start_date, end_date,incident_types)
-    
+    scatter_plot_data, incident_outcomes = prepare_scatter_plot_cached(
+        state_code, start_date, end_date, incident_types
+    )
+
     treemap_data = prepare_treemap_data_cached(
         state_code, selected_kpi, start_date, end_date, incident_types
     )
@@ -135,9 +139,9 @@ def update_bar_charts(
 
 
 @app.callback(
-    Output("selected_state", "data"),
+    Output("state-dropdown", "value"),
     [Input("map-container", "clickData")],
-    [State("selected_state", "data")],
+    [State("state-dropdown", "value")],
 )
 def update_selected_state(click_data, current_state):
     if click_data:
@@ -149,6 +153,19 @@ def update_selected_state(click_data, current_state):
 
 
 @app.callback(
+    Output("kpi-select-dropdown", "value"),
+    Input("radar-chart", "clickData"),
+)
+def update_on_radar_click(click_data):
+    if click_data and "points" in click_data:
+        # Retrieve the metric name from the clicked radar segment
+        selected_metric = dropdown_options_rev[click_data["points"][0]["theta"]]
+    else:
+        selected_metric = "incident_rate"
+    return selected_metric
+
+
+@app.callback(
     Output("content", "children"),
     Output("content-metric-analysis", "children"),
     [
@@ -157,12 +174,10 @@ def update_selected_state(click_data, current_state):
         Input("date-picker-range", "end_date"),
         Input("incident-filter-dropdown", "value"),
         Input("kpi-select-dropdown", "value"),
-        Input("time-period-dropdown", "value"),
         Input("selected_state", "data"),
         Input("state-dropdown", "value"),
     ],
 )
-
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
 def update_tab_contents(
     tab_name,
@@ -170,20 +185,13 @@ def update_tab_contents(
     end_date,
     incident_types,
     kpi,
-    time_period,
     selected_state,
     dropdown_state,
 ):
     state_analysis_content = html.Div()
     metric_analysis_content = html.Div()
 
-    if (
-        tab_name == "state_analysis_tab"
-        and start_date
-        and end_date
-        and kpi
-        and time_period
-    ):
+    if tab_name == "state_analysis_tab" and start_date and end_date and kpi:
         map_data = prepare_state_data_cached(start_date, end_date, incident_types, kpi)
 
         if selected_state is not None:
@@ -214,25 +222,33 @@ def update_tab_contents(
                                     "width": "50%",
                                     "padding": "5px",
                                 },
-                                children=[dcc.Loading(children=[
-                                    dcc.Graph(
-                                        figure=create_radar_chart(
-                                            radar_chart_data, dropdown_state
-                                        ),
-                                        id="radar-chart",
-                                    ),
-                                ])],
+                                children=[
+                                    dcc.Loading(
+                                        children=[
+                                            dcc.Graph(
+                                                figure=create_radar_chart(
+                                                    radar_chart_data, dropdown_state
+                                                ),
+                                                id="radar-chart",
+                                            ),
+                                        ]
+                                    )
+                                ],
                             ),
                             html.Div(
                                 style={"width": "50%", "padding": "5px"},
-                                children=[dcc.Loading(children=[
-                                    dcc.Graph(
-                                        figure=create_map(
-                                            map_data, kpi, selected_state
-                                        ),
-                                        id="map-container",
-                                    ),
-                                ])],
+                                children=[
+                                    dcc.Loading(
+                                        children=[
+                                            dcc.Graph(
+                                                figure=create_map(
+                                                    map_data, kpi, dropdown_state
+                                                ),
+                                                id="map-container",
+                                            ),
+                                        ]
+                                    )
+                                ],
                             ),
                         ],
                     ),
@@ -243,16 +259,19 @@ def update_tab_contents(
                             "height": "800px",
                             "marginTop": "20px",
                         },
-                        children=[dcc.Loading(
                         children=[
-                            dcc.Graph(
-                                figure=create_splom(map_data, kpi, selected_state),
-                                id="splom-container",
+                            dcc.Loading(
+                                children=[
+                                    dcc.Graph(
+                                        figure=create_splom(
+                                            map_data, kpi, dropdown_state
+                                        ),
+                                        id="splom-container",
                                     )
                                 ],
-                                            )
-                                ]
-                            ),
+                            )
+                        ],
+                    ),
                 ],
             )
         else:
@@ -297,27 +316,38 @@ def update_tab_contents(
                             "minHeight": "1000px",  # Set minimum height for the grid
                         },
                         children=[
-                            dcc.Loading(children=[
-                            dcc.Graph(
-                                figure=create_scatter_plot(
-                                    scatter_plot_data,
-                                    incident_outcomes,
-                                    dropdown_state,
-                                ),
-                                id="bar-chart-sector",
-                            )]),
-                            dcc.Loading(children=[
-                            dcc.Graph(
-                                figure=create_treemap(treemap_data, "incident_rate"),
-                                id="treemap-chart",
-                            )]),
-                            dcc.Loading(children=[
-                            dcc.Graph(
-                                figure=create_stacked_bar_chart(
-                                    stacked_bar_chart, dropdown_state
-                                ),
-                                id="bar-chart-soc",
-                            )]),
+                            dcc.Loading(
+                                children=[
+                                    dcc.Graph(
+                                        figure=create_scatter_plot(
+                                            scatter_plot_data,
+                                            incident_outcomes,
+                                            dropdown_state,
+                                        ),
+                                        id="bar-chart-sector",
+                                    )
+                                ]
+                            ),
+                            dcc.Loading(
+                                children=[
+                                    dcc.Graph(
+                                        figure=create_treemap(
+                                            treemap_data, "incident_rate"
+                                        ),
+                                        id="treemap-chart",
+                                    )
+                                ]
+                            ),
+                            dcc.Loading(
+                                children=[
+                                    dcc.Graph(
+                                        figure=create_stacked_bar_chart(
+                                            stacked_bar_chart, dropdown_state
+                                        ),
+                                        id="bar-chart-soc",
+                                    )
+                                ]
+                            ),
                         ],
                     ),
                 ],
@@ -328,6 +358,31 @@ def update_tab_contents(
             )
 
     return state_analysis_content, metric_analysis_content
+
+
+# @app.callback(
+#     [
+#         Input("radar-chart", "clickData"),
+#         State("date-picker-range", "start_date"),
+#         State("date-picker-range", "end_date"),
+#         State("incident-filter-dropdown", "value"),
+#         State("selected_state", "data"),
+#     ],
+# )
+# def update_psp_on_radar_click(
+#     click_data, start_date, end_date, incident_types, selected_state
+# ):
+#     if click_data and "points" in click_data:
+#         selected_metric = dropdown_options_rev.get(
+#             click_data["points"][0]["theta"], "incident_rate"
+#         )
+#     else:
+#         selected_metric = "incident_rate"
+
+#     psp_data = prepare_state_data_cached(
+#         start_date, end_date, incident_types, selected_metric
+#     )
+#     return create_splom(psp_data, kpi=selected_metric, selected_state=selected_state)
 
 
 if __name__ == "__main__":

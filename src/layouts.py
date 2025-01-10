@@ -63,6 +63,7 @@ main_layout = html.Div(
                                     value=state_codes[0],
                                     placeholder="Select State",
                                     style={"width": "100%"},
+                                    clearable=False,
                                 ),
                             ],
                         ),
@@ -77,13 +78,16 @@ main_layout = html.Div(
                                     placeholder="Select KPI",
                                     optionHeight=50,
                                     style={"width": "100%"},
+                                    clearable=False,
                                 ),
                             ],
                         ),
                         html.Div(
                             id="date-picker-container",
                             children=[
-                                html.H4("Select Date Range", style={"marginBottom": "5%"}),
+                                html.H4(
+                                    "Select Date Range", style={"marginBottom": "5%"}
+                                ),
                                 dcc.DatePickerRange(
                                     id="date-picker-range",
                                     start_date=data["date_of_incident"].min(),
@@ -102,30 +106,13 @@ main_layout = html.Div(
                                 ),
                                 dcc.Dropdown(
                                     id="incident-filter-dropdown",
-                                    options=[{"label": cat_value, "value": cat_value} for cat_value in incident_types],
+                                    options=[
+                                        {"label": cat_value, "value": cat_value}
+                                        for cat_value in incident_types
+                                    ],
                                     placeholder="Select one or more categories",
                                     multi=True,
                                     clearable=True,
-                                    style={"width": "100%"},
-                                ),
-                            ],
-                        ),
-                        html.Div(
-                            id="time-period-container",
-                            children=[
-                                html.H4("Select Time Period", style={"marginBottom": "5%"}),
-                                dcc.Dropdown(
-                                    id="time-period-dropdown",
-                                    options=[
-                                        {"label": "Year", "value": "incident_year"},
-                                        {"label": "Month", "value": "incident_month"},
-                                        {
-                                            "label": "Weekday",
-                                            "value": "incident_weekday",
-                                        },
-                                    ],
-                                    value="incident_year",
-                                    placeholder="Select time period",
                                     style={"width": "100%"},
                                 ),
                             ],
