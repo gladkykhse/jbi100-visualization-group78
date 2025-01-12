@@ -193,6 +193,8 @@ def update_tab_contents(
                     "display": "flex",
                     "flexDirection": "column",  # Stack rows vertically
                     "padding": "10px",
+                    "height": "calc(100vh - 8rem - 40px)",
+
                 },
                 children=[
                     # Row 1: Radar (left) and Map (right)
@@ -244,6 +246,7 @@ def update_tab_contents(
                             "width": "100%",
                             "height": "800px",
                             "marginTop": "20px",
+                            "flex": "1",
                         },
                         children=[
                             dcc.Loading(
@@ -291,14 +294,16 @@ def update_tab_contents(
                     "justifyContent": "center",
                     "flexDirection": "column",
                     "padding": "1rem",
+                    "height": "calc(100vh - 8rem - 40px)"
                 },
                 children=[
                     html.Div(
                         style={
                             "display": "grid",
-                            "gridTemplateColumns": "1fr 1fr",  # Three equal-width columns
-                            "gridTemplateRows": "auto auto",  # Three rows with auto height
-                            "minHeight": "1000px",  # Set minimum height for the grid
+                            "gridTemplateColumns": "1fr 1fr",  # Two equal-width columns
+                            "gridTemplateRows": "1fr 1fr",  # Equal-height rows
+                            "gap": "1rem",  # Add spacing between graphs
+                            "flexGrow": "1",  # Allow grid to grow to fill space
                         },
                         children=[
                             # First Graph: Spanning from [0,0] to [1,1]
@@ -312,6 +317,7 @@ def update_tab_contents(
                                                 dropdown_state,
                                             ),
                                             id="scatter-plot",
+                                            style={"height": "100%", "width": "100%"}
                                         )
                                     ]
                                 ),
@@ -332,7 +338,8 @@ def update_tab_contents(
                                 ),
                                 style={
                                     "gridColumn": "1/3",  # Spans columns 1 to 3
-                                    "gridRow": "2",  # Occupies the third row
+                                    "gridRow": "2",
+                                    "height": "100%", "width": "100%",  # Occupies the third row
                                 },
                             ),
                             # Third Graph: Spanning [2,0] to [2,1]
@@ -344,12 +351,14 @@ def update_tab_contents(
                                                 stacked_bar_chart, dropdown_state
                                             ),
                                             id="stacked-bar-chart",
+                                            style={"height": "100%", "width": "100%"}
                                         )
                                     ]
                                 ),
                                 style={
                                     "gridColumn": "2",  # Spans columns 1 to 2
-                                    "gridRow": "1",  # Occupies the third row
+                                    "gridRow": "1",
+                                    "height": "100%", "width": "100%",  # Occupies the third row
                                 },
                             ),
                         ],

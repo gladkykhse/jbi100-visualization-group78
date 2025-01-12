@@ -6,6 +6,7 @@ from plotly_resampler import FigureResampler
 
 from src.mappings import dropdown_options, state_map
 
+height = 600
 
 def transform_kpi_names(s):
     return " ".join(map(str.capitalize, s.split("_")))
@@ -230,6 +231,7 @@ def create_treemap(df, kpi, selected_state):
         color="metric",
         color_continuous_scale=sequential.Oranges,
         maxdepth=2,
+        height=height,
     )
 
     # Update hovertemplate for clarity
@@ -345,8 +347,8 @@ def create_scatter_plot(df, incident_outcomes, selected_state):
             text=df["naics_description_5"],  # Use SOC description for hover
             hovertemplate=(
                 "<b>Industry:</b> %{text}<br>"
-                "<b>Time Started Work:</b> %{customdata[0]}<br>"
-                "<b>Time of Incident:</b> %{customdata[1]}<br>"
+                "<b>Average Work Start Time:</b> %{customdata[0]}<br>"
+                "<b>Average Incident Time:</b> %{customdata[1]}<br>"
                 "<b>Number of Injuries:</b> %{marker.color}<br>"
                 "<extra></extra>"
             ),
@@ -357,8 +359,15 @@ def create_scatter_plot(df, incident_outcomes, selected_state):
     # Update layout
     fig.update_layout(
         title=f"Work Start vs Incident Time in {state_map[selected_state]}",
-        xaxis=dict(title="Time Started Work (Hours)"),
-        yaxis=dict(title="Time of Incident (Hours)"),
+        xaxis=dict(
+            title="Time Started Work (Hours)",
+            range=[0, 24],  # Set min and max values for x-axis
+        ),
+        yaxis=dict(
+            title="Time of Incident (Hours)",
+            range=[0, 24],  # Set min and max values for y-axis
+        ),
+        height=height,
     )
     return fig
 
@@ -385,7 +394,7 @@ def create_stacked_bar_chart(df, selected_state):
                 ),
                 hovertemplate=(
                     "<b>Incident Outcome:</b> %{y}<br>"
-                    "<b>Establishment Type:</b> %{marker}<br>"
+                    "<b>Establishment Type:</b> %{name}<br>"
                     "<b>Proportion of Incidents:</b> %{text}<extra></extra>"
                 ),
             )
@@ -404,5 +413,6 @@ def create_stacked_bar_chart(df, selected_state):
         legend=dict(
             title="Establishment Type", orientation="h", x=0.5, xanchor="center", y=-0.4
         ),
+        height=height,
     )
     return fig

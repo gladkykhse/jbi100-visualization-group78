@@ -22,15 +22,17 @@ main_layout = html.Div(
             style={
                 "width": "100%",
                 "backgroundColor": "#2c3e50",
-                "padding": "1%",
                 "color": "white",
                 "textAlign": "center",
                 "boxSizing": "border-box",
             },
             children=[
-                html.H2(
+                html.H1(
                     "Work-related injuries dashboard",
-                    style={"margin": "0", "fontSize": "1.5em"},
+                    style={"margin": "0",
+                           "fontSize": "2em",
+                            "padding": "0.5em 0",
+                           },
                 ),
             ],
         ),
@@ -47,12 +49,12 @@ main_layout = html.Div(
                 html.Div(
                     id="left-menu",
                     style={
-                        "width": "20%",
+                        "width": "15%",
                         "backgroundColor": "#f4f4f4",
-                        "padding": "2%",
+                        "padding": "1%",
                         "borderRight": "1px solid #dfe4ea",
                         "boxSizing": "border-box",
-                        "minHeight": "100vh",  # Ensures it always fills the viewport height
+                        "minHeight": "calc(100vh - 3rem)",  # Ensures it always fills the viewport height
                         "flexShrink": "0",  # Prevents sidebar from shrinking
                         "overflowY": "auto",  # Adds scrolling if content exceeds the height
                     },
@@ -126,10 +128,11 @@ main_layout = html.Div(
                 # Tabs and visualizations on the right (Main Content)
                 html.Div(
                     style={
-                        "width": "80%",
-                        "padding": "0%",
+                        "width": "85%",
+                        "padding": "0",
                         "boxSizing": "border-box",
                         "overflow": "auto",
+                        "height": "100%",
                     },
                     children=[
                         dcc.Tabs(
