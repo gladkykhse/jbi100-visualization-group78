@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -35,7 +34,7 @@ def create_radar_chart(df, dropdown_state):
             name=f"{state_map[dropdown_state]} Metric Values",
             customdata=df_closed["value"],
             opacity=0.8,
-            hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata}<br>",
+            hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata:.2f}<br>",
         )
     )
 
@@ -49,7 +48,7 @@ def create_radar_chart(df, dropdown_state):
             customdata=df_closed["mean_value"],
             fillcolor=px.colors.qualitative.Plotly[4],
             opacity=0.8,
-            hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata}<br>",
+            hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata:.2f}<br>",
         )
     )
 
@@ -84,7 +83,7 @@ def create_radar_chart(df, dropdown_state):
         legend=dict(
             orientation="h",  # Horizontal legend
             yanchor="bottom",  # Align the legend's bottom with the top of the plot
-            y=1.1,  # Position above the chart
+            y=1.05,  # Position above the chart
             xanchor="center",  # Center-align the legend
             x=0.5,  # Center position horizontally
         ),
@@ -142,7 +141,7 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                 autocolorscale=False,
                 marker_line_color=border_color,  # Default boundary lines
                 colorbar=dict(title=dict(text=kpi_name)),
-                hovertemplate="<b>State:</b> %{text}<br><b>Value:</b> %{z}<extra></extra>",
+                hovertemplate="<b>State:</b> %{text}<br><b>Value:</b> %{z:.2f}<extra></extra>",
                 text=df["state_code"].map(
                     state_map
                 ),  # Add state names to the hover info
@@ -172,7 +171,7 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                     text=df["state_code"].map(
                         state_map
                     ),  # Add state names to the hover info
-                    hoverinfo="text+z",  # Include hover info
+                    hovertemplate="<b>State:</b> %{text}<br><b>Value:</b> %{z:.2f}<extra></extra>",
                     showscale=False,  # No color scale for the highlight layer
                 )
             )
@@ -201,6 +200,9 @@ def create_map(df, kpi="incident_rate", selected_state=None):
             lakecolor=background_color,
             bgcolor=background_color,
         ),
+        mapbox=dict(zoom=False),
+        dragmode=False,
+        uirevision=True,
     )
     return fig
 
@@ -220,18 +222,18 @@ def create_histogram(filtered_df, feature):
     return fig
 
 
-def create_treemap(df, kpi):
-    threshold = np.percentile(df["count"].to_numpy(), 50)  # 50th percentile
-    filtered_df = df[df["count"].to_numpy() > threshold]
+def create_treemap(df, kpi, selected_state):
+    filtered_df = df.query("count > 10")
     kpi_name = dropdown_options[kpi]
     # Create the treemap with hover information
     fig = px.treemap(
         filtered_df,
         path=[px.Constant("US Market"), "soc_description_1", "soc_description_2"],
-        title=f"{kpi_name} across different US jobs",
+        title=f"{kpi_name} across different {state_map[selected_state]} jobs",
         values="count",
         color="metric",
         color_continuous_scale=sequential.Oranges,
+        maxdepth=2,
     )
 
     # Update hovertemplate for clarity
@@ -324,52 +326,40 @@ def create_splom(df, kpi, selected_state=None):
 def create_scatter_plot(df, incident_outcomes, selected_state):
     fig = FigureResampler(go.Figure())
 
-    # Define a colorblind-safe palette for the incident outcomes
-    safe_colors = px.colors.qualitative.Safe
-    color_mapping = {outcome: safe_colors[i % len(safe_colors)] for i, outcome in enumerate(incident_outcomes)}
-
-    # Add a separate trace for each incident_outcome
-    for outcome in incident_outcomes:
-        subset = df[df["incident_outcome"] == outcome]
-        fig.add_trace(
-            go.Scatter(
-                x=subset["time_started_work"].dt.hour
-                + subset["time_started_work"].dt.minute / 60,
-                y=subset["time_of_incident"].dt.hour
-                + subset["time_of_incident"].dt.minute / 60,
-                mode="markers",
-                marker=dict(
-                    size=10,  # Set a fixed size for all points
-                    opacity=0.8,  # Set opacity
-                    color=color_mapping[outcome],  # Assign color for each outcome
+    # Add a single trace for all data points
+    fig.add_trace(
+        go.Scatter(
+            x=df["time_started_work"].dt.hour + df["time_started_work"].dt.minute / 60,
+            y=df["time_of_incident"].dt.hour + df["time_of_incident"].dt.minute / 60,
+            mode="markers",
+            marker=dict(
+                size=10,  # Set a fixed size for all points
+                opacity=0.8,  # Set opacity
+                color=df["case_number"],  # Use `case_number` for coloring
+                colorscale="Viridis",  # Choose a continuous colorscale
+                showscale=True,  # Display colorbar
+                colorbar=dict(
+                    title="Number of injuries",  # Colorbar title
+                    titleside="top",
                 ),
-                name=outcome,  # Add incident outcome as the trace name
-                text=subset["soc_description_4"],  # Use SOC description for hover
-                hovertemplate=(
-                    "<b>Job Description:</b> %{text}<br>"
-                    "<b>Time Started Work:</b> %{customdata[0]}<br>"
-                    "<b>Time of Incident:</b> %{customdata[1]}<br>"
-                    "<extra></extra>"
-                ),
-                customdata=subset[
-                    ["time_started_work_str", "time_of_incident_str"]
-                ].values,
-            )
+            ),
+            text=df["naics_description_5"],  # Use SOC description for hover
+            hovertemplate=(
+                "<b>Industry:</b> %{text}<br>"
+                "<b>Time Started Work:</b> %{customdata[0]}<br>"
+                "<b>Time of Incident:</b> %{customdata[1]}<br>"
+                "<b>Number of Injuries:</b> %{marker.color}<br>"
+                "<extra></extra>"
+            ),
+            customdata=df[["time_started_work_str", "time_of_incident_str"]].values,
         )
+    )
 
     # Update layout
     fig.update_layout(
-        title=f"Time Started Work vs Time of Incident in {state_map[selected_state]}",
+        title=f"Work Start vs Incident Time in {state_map[selected_state]}",
         xaxis=dict(title="Time Started Work (Hours)"),
         yaxis=dict(title="Time of Incident (Hours)"),
-        legend=dict(
-            title="Incident Outcome",
-            orientation="h",  # Horizontal legend
-            yanchor="bottom",  # Anchor to the bottom
-            y=-0.4,  # Position below the plot area
-            xanchor="center",  # Center horizontally
-            x=0.5,  # Center of the graph
-        ),
     )
     return fig
 
@@ -378,21 +368,24 @@ def create_stacked_bar_chart(df, selected_state):
     fig = FigureResampler(go.Figure())
 
     # Define a safe qualitative color mapping
-    colors = px.colors.qualitative.Safe
+    colors = px.colors.qualitative.Dark2
 
     # Add a bar trace for each establishment type
-    for i, establishment in enumerate(df.columns[1:]):  # Skip the 'type_of_incident' column
+    for i, establishment in enumerate(
+        df.columns[1:]
+    ):  # Skip the 'type_of_incident' column
         fig.add_trace(
             go.Bar(
-                y=df["type_of_incident"],
+                y=df["incident_outcome"],
                 x=df[establishment],
                 name=establishment,
                 orientation="h",
-                text=(df[establishment] * 100).round(1).astype(str) + "%",  # Display percentages
+                text=(df[establishment] * 100).round(1).astype(str)
+                + "%",  # Display percentages
                 textposition="inside",
                 marker=dict(
                     color=colors[i % len(colors)],  # Cycle through Safe colors
-                    line=dict(width=0.5, color="rgb(248, 248, 249)")
+                    line=dict(width=0.5, color="rgb(248, 248, 249)"),
                 ),
             )
         )
@@ -400,13 +393,13 @@ def create_stacked_bar_chart(df, selected_state):
     # Update layout
     fig.update_layout(
         barmode="stack",
-        title=f"Proportion of Incidents by Type and Establishment Type in {state_map[selected_state]}",
+        title=f"Distribution of Incident Outcomes by Establishment type in {state_map[selected_state]}",
         xaxis=dict(title="Proportion of Incidents", tickformat=".0%"),
-        yaxis=dict(title="Type of Incident"),
+        yaxis=dict(title="Incident Outcome"),
         paper_bgcolor="white",
         plot_bgcolor="white",
         margin=dict(l=120, r=10, t=140, b=80),
         showlegend=True,
-        legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.2),
+        legend=dict(title="Establishment Type", orientation="h", x=0.5, xanchor="center", y=-0.4),
     )
     return fig

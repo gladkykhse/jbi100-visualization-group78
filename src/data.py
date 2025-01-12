@@ -330,7 +330,7 @@ def prepare_state_data(
 ):
     filtered_data = filter_data(data, start_date, end_date, filter_incident_types)
     aggregated_data = (
-        filtered_data.groupby("state_code")
+        filtered_data.groupby("state_code", observed=False)
         .agg(
             annual_average_employees_median=("annual_average_employees", "median"),
             annual_average_employees_sum=("annual_average_employees", "sum"),
@@ -401,12 +401,13 @@ def prepare_scatter_plot(state, start_date, end_date, filter_incident_types):
     # Filter data for the state of Ohio
     aggregated_data = (
         filtered_data.query("state_code == @state")
-        .groupby("soc_description_4", observed=True)
+        .groupby("naics_description_5", observed=True)
         .agg(
             {
+                "case_number": "count",
                 "time_started_work": "mean",
                 "time_of_incident": "mean",
-                "incident_outcome": lambda x: x.mode().iloc[0],
+                "establishment_type": lambda x: x.mode().iloc[0],
             }
         )
         .reset_index()
@@ -421,25 +422,25 @@ def prepare_scatter_plot(state, start_date, end_date, filter_incident_types):
     ].dt.strftime("%H:%M")
 
     # Unique incident outcomes
-    incident_outcomes = aggregated_data["incident_outcome"].unique()
+    incident_outcomes = aggregated_data["establishment_type"].unique()
     return aggregated_data, incident_outcomes
 
 
 def prepare_stacked_bar_chart(state, start_date, end_date, filter_incident_types):
     filtered_data = filter_data(
         data, start_date, end_date, filter_incident_types
-    ).query("state_code == @state")
+    ).query("state_code == @state").query("establishment_type != 'Not Stated' & establishment_type != 'Invalid Entry'")
 
     # Aggregate the data: count incidents by type and establishment
     aggregated_data = (
-        filtered_data.groupby(["type_of_incident", "incident_outcome"])
+        filtered_data.groupby(["incident_outcome", "establishment_type"], observed=True)
         .size()
         .reset_index(name="count")
     )
 
     # Pivot the data for a stacked bar chart structure
     pivot_data = aggregated_data.pivot(
-        index="type_of_incident", columns="incident_outcome", values="count"
+        index="incident_outcome", columns="establishment_type", values="count"
     ).fillna(0)
     # Normalize the data by row (each type_of_incident adds up to 1)
     pivot_data_normalized = pivot_data.div(pivot_data.sum(axis=1), axis=0).reset_index()

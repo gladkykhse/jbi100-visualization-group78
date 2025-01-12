@@ -1,5 +1,4 @@
 from dash import dcc, html
-
 from src.data import data, incident_types, state_codes
 from src.mappings import dropdown_options, state_map
 
@@ -10,9 +9,14 @@ main_layout = html.Div(
         "height": "100vh",
         "margin": "0",
         "padding": "0",
+        "boxSizing": "border-box",
     },
     children=[
         # Menu bar at the top
+        html.Link(
+            rel="stylesheet",
+            href="data:text/css,body { margin: 0; }"
+        ),
         dcc.Store(id="selected_state", storage_type="memory"),
         html.Div(
             style={
@@ -36,7 +40,7 @@ main_layout = html.Div(
                 "display": "flex",
                 "flexGrow": "1",
                 "height": "100%",
-                "overflow": "auto",
+                "overflow": "hidden",
             },
             children=[
                 # Dropdown menu on the left (Sidebar)

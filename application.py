@@ -32,34 +32,24 @@ app = dash.Dash(__name__, server=application)
 app.layout = main_layout
 
 
-# @app.callback(
-#     [
-#         Output("date-picker-container", "style"),
-#         Output("incident-filter-container", "style"),
-#         Output("time-period-container", "style"),
-#         Output("kpi-select-container", "style"),
-#         Output("state-dropdown-container", "style"),
-#     ],
-#     [Input("tabs", "value")],
-# )
-# def update_left_menu_visibility(tab_name):
-#     if tab_name == "state_analysis_tab":
-#         return (
-#             {"display": "block"},
-#             {"display": "block"},
-#             {"display": "block"},
-#             {"display": "block"},
-#             {"display": "none"},
-#         )
-#     elif tab_name == "metric_analysis_tab":
-#         return (
-#             {"display": "block"},
-#             {"display": "block"},
-#             {"display": "none"},
-#             {"display": "none"},
-#             {"display": "block"},
-#         )
-#     return {"display": "none"}, {"display": "none"}
+@app.callback(
+    [
+        # Output("date-picker-container", "style"),
+        # Output("incident-filter-container", "style"),
+        # Output("time-period-container", "style"),
+        Output("kpi-select-container", "style"),
+        # Output("state-dropdown-container", "style"),
+    ],
+    [Input("tabs", "value")],
+)
+def update_left_menu_visibility(tab_name):
+    if tab_name == "state_analysis_tab":
+        return [{"display": "block"}]
+
+    elif tab_name == "metric_analysis_tab":
+        return [{"display": "none"}]
+
+    return [{"display": "none"}]
 
 
 @app.callback(
@@ -133,7 +123,7 @@ def update_bar_charts(
 
     return (
         create_scatter_plot(scatter_plot_data, incident_outcomes, state_code),
-        create_treemap(treemap_data, selected_kpi),
+        create_treemap(treemap_data, selected_kpi, state_code),
         create_stacked_bar_chart(stacked_bar_chart, state_code),
     )
 
@@ -147,7 +137,7 @@ def update_selected_state(click_data, current_state):
     if click_data:
         clicked_state = click_data["points"][0]["location"]  # Get clicked state
         if clicked_state == current_state:
-            return None  # Deselect if the same state is clicked again
+            return current_state
         return clicked_state  # Update to the newly clicked state
     return current_state  # Retain the current state if no new click
 
@@ -310,43 +300,61 @@ def update_tab_contents(
                     html.Div(
                         style={
                             "display": "grid",
-                            "gridTemplateColumns": "1fr 1fr",
-                            "gridTemplateRows": "1fr 1fr",  # Equal rows for bar charts
-                            "gap": "1em",  # Add spacing between graphs
+                            "gridTemplateColumns": "1fr 1fr",  # Three equal-width columns
+                            "gridTemplateRows": "auto auto",  # Three rows with auto height
                             "minHeight": "1000px",  # Set minimum height for the grid
                         },
                         children=[
-                            dcc.Loading(
-                                children=[
-                                    dcc.Graph(
-                                        figure=create_scatter_plot(
-                                            scatter_plot_data,
-                                            incident_outcomes,
-                                            dropdown_state,
-                                        ),
-                                        id="bar-chart-sector",
-                                    )
-                                ]
+                            # First Graph: Spanning from [0,0] to [1,1]
+                            html.Div(
+                                dcc.Loading(
+                                    children=[
+                                        dcc.Graph(
+                                            figure=create_scatter_plot(
+                                                scatter_plot_data,
+                                                incident_outcomes,
+                                                dropdown_state,
+                                            ),
+                                            id="scatter-plot",
+                                        )
+                                    ]
+                                ),
                             ),
-                            dcc.Loading(
-                                children=[
-                                    dcc.Graph(
-                                        figure=create_treemap(
-                                            treemap_data, "incident_rate"
-                                        ),
-                                        id="treemap-chart",
-                                    )
-                                ]
+                            # Second Graph: Spanning [2,0] to [2,2]
+                            html.Div(
+                                dcc.Loading(
+                                    children=[
+                                        dcc.Graph(
+                                            figure=create_treemap(
+                                                treemap_data,
+                                                "incident_rate",
+                                                dropdown_state,
+                                            ),
+                                            id="treemap-chart",
+                                        )
+                                    ]
+                                ),
+                                style={
+                                    "gridColumn": "1/3",  # Spans columns 1 to 3
+                                    "gridRow": "2",  # Occupies the third row
+                                },
                             ),
-                            dcc.Loading(
-                                children=[
-                                    dcc.Graph(
-                                        figure=create_stacked_bar_chart(
-                                            stacked_bar_chart, dropdown_state
-                                        ),
-                                        id="bar-chart-soc",
-                                    )
-                                ]
+                            # Third Graph: Spanning [2,0] to [2,1]
+                            html.Div(
+                                dcc.Loading(
+                                    children=[
+                                        dcc.Graph(
+                                            figure=create_stacked_bar_chart(
+                                                stacked_bar_chart, dropdown_state
+                                            ),
+                                            id="stacked-bar-chart",
+                                        )
+                                    ]
+                                ),
+                                style={
+                                    "gridColumn": "2",  # Spans columns 1 to 2
+                                    "gridRow": "1",  # Occupies the third row
+                                },
                             ),
                         ],
                     ),
