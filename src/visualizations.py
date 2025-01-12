@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from plotly.colors import sequential
 from plotly_resampler import FigureResampler
 
-from src.mappings import dropdown_options, state_code_map, state_map
+from src.mappings import dropdown_options, state_map
 
 
 def transform_kpi_names(s):
@@ -68,10 +68,7 @@ def create_radar_chart(df, dropdown_state):
     fig.update_layout(
         title={
             "text": f"{state_map[dropdown_state]} Safety Profile",
-            "x": 0.5,  # Horizontally center the title
             "y": 0.98,  # Push it a bit down from the top
-            "xanchor": "center",
-            "yanchor": "middle",
         },
         polar=dict(
             radialaxis=dict(
@@ -223,11 +220,10 @@ def create_histogram(filtered_df, feature):
 
 
 def create_treemap(df, kpi, selected_state):
-    filtered_df = df.query("count > 10")
     kpi_name = dropdown_options[kpi]
     # Create the treemap with hover information
     fig = px.treemap(
-        filtered_df,
+        df,
         path=[px.Constant("US Market"), "soc_description_1", "soc_description_2"],
         title=f"{kpi_name} across different {state_map[selected_state]} jobs",
         values="count",
@@ -251,14 +247,17 @@ def create_treemap(df, kpi, selected_state):
 
 def create_splom(df, kpi, selected_state=None):
     fig = FigureResampler(go.Figure())
-
+    df = df.sort_values(by=kpi, ascending=True).copy()
+    df["tickvals"] = range(1, len(df) + 1)
     # Check if a state is selected
     if selected_state:
         # Filter the dataframe for the selected state
         # selected_state_data = df[df["state_code"] == selected_state].iloc[0]
 
         # Prepare constraintrange for each dimension
-        constrained_state = state_code_map[selected_state]
+        constrained_state = (
+            df["tickvals"].loc[df["state_code"] == selected_state].values[0]
+        )
 
     else:
         constrained_state = None  # No filtering if no state is selected
@@ -278,8 +277,8 @@ def create_splom(df, kpi, selected_state=None):
             dimensions=[
                 dict(
                     label="State Code",
-                    values=df["state_code"].map(state_code_map),
-                    tickvals=df["state_code"].map(state_code_map),
+                    values=df["tickvals"],
+                    tickvals=df["tickvals"],
                     ticktext=df["state_code"].map(state_map).tolist(),
                     constraintrange=[constrained_state - 0.5, constrained_state + 0.5]
                     if constrained_state
@@ -290,23 +289,23 @@ def create_splom(df, kpi, selected_state=None):
                     values=df[kpi],
                 ),
                 dict(
-                    label="Total Deaths",
+                    label="Average Deaths",
                     values=df["death"],
                 ),
                 dict(
-                    label="Total Hours Worked",
+                    label="Average Hours Worked",
                     values=df["total_hours_worked"],
                 ),
                 dict(
-                    label="Annual Employees",
+                    label="Average Annual Employees",
                     values=df["annual_average_employees_median"],
                 ),
                 dict(
-                    label="Days Away from Work",
+                    label="Average Days Away from Work",
                     values=df["dafw_num_away"],
                 ),
                 dict(
-                    label="Days Job Transfer/Restriction",
+                    label="Average Days Job Transfer/Restriction",
                     values=df["djtr_num_tr"],
                 ),
             ],
@@ -371,21 +370,23 @@ def create_stacked_bar_chart(df, selected_state):
     colors = px.colors.qualitative.Dark2
 
     # Add a bar trace for each establishment type
-    for i, establishment in enumerate(
-        df.columns[1:]
-    ):  # Skip the 'type_of_incident' column
+    for i, establishment in enumerate(df.columns[1:].tolist()):
         fig.add_trace(
             go.Bar(
                 y=df["incident_outcome"],
                 x=df[establishment],
                 name=establishment,
                 orientation="h",
-                text=(df[establishment] * 100).round(1).astype(str)
-                + "%",  # Display percentages
+                text=(df[establishment] * 100).round(1).astype(str) + "%",  # Display percentages
                 textposition="inside",
                 marker=dict(
                     color=colors[i % len(colors)],  # Cycle through Safe colors
                     line=dict(width=0.5, color="rgb(248, 248, 249)"),
+                ),
+                hovertemplate=(
+                    "<b>Incident Outcome:</b> %{y}<br>"
+                    "<b>Establishment Type:</b> %{marker}<br>"
+                    "<b>Proportion of Incidents:</b> %{text}<extra></extra>"
                 ),
             )
         )
@@ -400,6 +401,8 @@ def create_stacked_bar_chart(df, selected_state):
         plot_bgcolor="white",
         margin=dict(l=120, r=10, t=140, b=80),
         showlegend=True,
-        legend=dict(title="Establishment Type", orientation="h", x=0.5, xanchor="center", y=-0.4),
+        legend=dict(
+            title="Establishment Type", orientation="h", x=0.5, xanchor="center", y=-0.4
+        ),
     )
     return fig

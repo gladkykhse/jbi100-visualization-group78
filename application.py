@@ -34,11 +34,7 @@ app.layout = main_layout
 
 @app.callback(
     [
-        # Output("date-picker-container", "style"),
-        # Output("incident-filter-container", "style"),
-        # Output("time-period-container", "style"),
         Output("kpi-select-container", "style"),
-        # Output("state-dropdown-container", "style"),
     ],
     [Input("tabs", "value")],
 )
@@ -52,21 +48,21 @@ def update_left_menu_visibility(tab_name):
     return [{"display": "none"}]
 
 
-@app.callback(
-    [
-        Output("bar-chart-sector", "figure"),
-        Output("treemap-chart", "figure"),
-        Output("bar-chart-soc", "figure"),
-    ],
-    [
-        Input("radar-chart", "clickData"),
-        Input("state-dropdown", "value"),
-        Input("date-picker-range", "start_date"),
-        Input("date-picker-range", "end_date"),
-        Input("incident-filter-dropdown", "value"),
-        Input("splom-container", "dimensions"),
-    ],
-)
+# @app.callback(
+#     [
+#         Output("bar-chart-sector", "figure"),
+#         Output("treemap-chart", "figure"),
+#         Output("bar-chart-soc", "figure"),
+#     ],
+#     [
+#         Input("radar-chart", "clickData"),
+#         Input("state-dropdown", "value"),
+#         Input("date-picker-range", "start_date"),
+#         Input("date-picker-range", "end_date"),
+#         Input("incident-filter-dropdown", "value"),
+#         Input("splom-container", "dimensions"),
+#     ],
+# )
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
 def prepare_scatter_plot_cached(state_code, start_date, end_date, incident_types):
     scatter_plot_data, incident_outcomes = prepare_scatter_plot(
@@ -366,31 +362,6 @@ def update_tab_contents(
             )
 
     return state_analysis_content, metric_analysis_content
-
-
-# @app.callback(
-#     [
-#         Input("radar-chart", "clickData"),
-#         State("date-picker-range", "start_date"),
-#         State("date-picker-range", "end_date"),
-#         State("incident-filter-dropdown", "value"),
-#         State("selected_state", "data"),
-#     ],
-# )
-# def update_psp_on_radar_click(
-#     click_data, start_date, end_date, incident_types, selected_state
-# ):
-#     if click_data and "points" in click_data:
-#         selected_metric = dropdown_options_rev.get(
-#             click_data["points"][0]["theta"], "incident_rate"
-#         )
-#     else:
-#         selected_metric = "incident_rate"
-
-#     psp_data = prepare_state_data_cached(
-#         start_date, end_date, incident_types, selected_metric
-#     )
-#     return create_splom(psp_data, kpi=selected_metric, selected_state=selected_state)
 
 
 if __name__ == "__main__":

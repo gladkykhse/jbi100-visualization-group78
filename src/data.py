@@ -333,7 +333,7 @@ def prepare_state_data(
         filtered_data.groupby("state_code", observed=False)
         .agg(
             annual_average_employees_median=("annual_average_employees", "median"),
-            annual_average_employees_sum=("annual_average_employees", "sum"),
+            annual_average_employees_sum=("annual_average_employees", "median"),
             total_hours_worked=("total_hours_worked", "median"),
             dafw_num_away=("dafw_num_away", "median"),
             djtr_num_tr=("djtr_num_tr", "median"),
@@ -391,7 +391,7 @@ def prepare_treemap_data(state_code, kpi, start_date, end_date, incident_types):
                 .iloc[0, -1],
             ),
         )
-        .reset_index()
+        .reset_index().query("count > 10")
     )
 
 
