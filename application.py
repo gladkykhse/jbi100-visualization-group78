@@ -329,6 +329,46 @@ def update_tab_contents(
 
     return state_analysis_content, metric_analysis_content
 
+@app.callback(
+    Output("map-container", "figure"),
+    [
+        Input("radar-chart", "clickData"),
+        State("selected_state", "data"),
+        State("date-picker-range", "start_date"),
+        State("date-picker-range", "end_date"),
+        State("incident-filter-dropdown", "value"),
+    ],
+)
+def update_map_on_radar_click(click_data, selected_state, start_date, end_date, incident_types):
+    if click_data and "points" in click_data:
+        # Retrieve the metric name from the clicked radar segment
+        selected_metric = dropdown_options_rev[click_data["points"][0]["theta"]]
+
+    # Prepare the data for the map based on the selected metric
+    map_data = prepare_state_data_cached(start_date, end_date, incident_types, selected_metric)
+
+    # Create and return the updated map figure
+    return create_map(map_data, kpi=selected_metric, selected_state=selected_state)
+
+@app.callback(
+    Output("splom-container", "figure"),  # Ensure this matches your PSP graph's ID
+    [
+        Input("radar-chart", "clickData"),
+        State("date-picker-range", "start_date"),
+        State("date-picker-range", "end_date"),
+        State("incident-filter-dropdown", "value"),
+        State("selected_state", "data"),
+    ],
+)
+def update_psp_on_radar_click(click_data, start_date, end_date, incident_types, selected_state):
+    if click_data and "points" in click_data:
+        selected_metric = dropdown_options_rev.get(click_data["points"][0]["theta"], "default_metric")
+    else:
+        selected_metric = "default_metric"
+
+    psp_data = prepare_state_data_cached(start_date, end_date, incident_types, selected_metric)
+    return create_splom(psp_data, kpi=selected_metric, selected_state=selected_state)
+
 
 if __name__ == "__main__":
     application.run(debug=True)
