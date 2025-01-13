@@ -1,4 +1,5 @@
 from dash import dcc, html
+
 from src.data import data, incident_types, state_codes
 from src.mappings import dropdown_options, state_map
 
@@ -13,10 +14,8 @@ main_layout = html.Div(
     },
     children=[
         # Menu bar at the top
-        html.Link(
-            rel="stylesheet",
-            href="data:text/css,body { margin: 0; }"
-        ),
+        dcc.Store(id="scatter-zoom-store", data={}),
+        html.Link(rel="stylesheet", href="data:text/css,body { margin: 0; }"),
         html.Div(
             style={
                 "width": "100%",
@@ -28,10 +27,11 @@ main_layout = html.Div(
             children=[
                 html.H1(
                     "Work-related injuries dashboard",
-                    style={"margin": "0",
-                           "fontSize": "2em",
-                            "padding": "0.5em 0",
-                           },
+                    style={
+                        "margin": "0",
+                        "fontSize": "2em",
+                        "padding": "0.5em 0",
+                    },
                 ),
             ],
         ),
@@ -90,9 +90,7 @@ main_layout = html.Div(
                         html.Div(
                             id="date-picker-container",
                             children=[
-                                html.H4(
-                                    "Select Date Range", style={"marginBottom": "5%"}
-                                ),
+                                html.H4("Select Date Range", style={"marginBottom": "5%"}),
                                 dcc.DatePickerRange(
                                     id="date-picker-range",
                                     start_date=data["date_of_incident"].min(),
@@ -111,10 +109,7 @@ main_layout = html.Div(
                                 ),
                                 dcc.Dropdown(
                                     id="incident-filter-dropdown",
-                                    options=[
-                                        {"label": cat_value, "value": cat_value}
-                                        for cat_value in incident_types
-                                    ],
+                                    options=[{"label": cat_value, "value": cat_value} for cat_value in incident_types],
                                     placeholder="Select one or more categories",
                                     multi=True,
                                     clearable=True,

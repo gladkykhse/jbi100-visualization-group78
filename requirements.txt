@@ -8,5 +8,5 @@ pandas
 plotly
 pyarrow
 numba
-plotly_resampler
-flask_caching
+plotly-resampler
+flask-caching

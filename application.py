@@ -4,30 +4,17 @@ from dash.dependencies import Input, Output, State
 from flask import Flask
 from flask_caching import Cache
 
-from src.data import (
-    data,
-    filter_data,
-    prepare_radar_data,
-    prepare_scatter_plot,
-    prepare_stacked_bar_chart,
-    prepare_state_data,
-    prepare_treemap_data,
-)
+from src.data import (data, filter_data, prepare_radar_data,
+                      prepare_scatter_plot, prepare_stacked_bar_chart,
+                      prepare_state_data, prepare_treemap_data)
 from src.layouts import main_layout
 from src.mappings import dropdown_options_rev
-from src.visualizations import (
-    create_map,
-    create_radar_chart,
-    create_scatter_plot,
-    create_splom,
-    create_stacked_bar_chart,
-    create_treemap,
-)
+from src.visualizations import (create_map, create_radar_chart,
+                                create_scatter_plot, create_splom,
+                                create_stacked_bar_chart, create_treemap)
 
 application = Flask(__name__)
-cache = Cache(
-    application, config={"CACHE_TYPE": "SimpleCache"}
-)  # Use "RedisCache" for production
+cache = Cache(application, config={"CACHE_TYPE": "SimpleCache"})  # Use "RedisCache" for production
 
 
 app = dash.Dash(__name__, server=application)
@@ -109,6 +96,80 @@ def update_on_radar_click(click_data):
 
 
 @app.callback(
+    Output("scatter-zoom-store", "data"),
+    Input("scatter-plot", "relayoutData"),
+    prevent_initial_call=True,  # Prevent this callback from firing before scatter-plot is created
+)
+def update_scatter_zoom_store(relayoutData):
+    # Simply pass along the relayoutData (or process if needed)
+    return relayoutData if relayoutData else {}
+
+
+@app.callback(
+    Output("treemap-chart", "figure"),
+    Output("stacked-bar-chart", "figure"),
+    [
+        Input("scatter-zoom-store", "data"),
+        Input("date-picker-range", "start_date"),
+        Input("date-picker-range", "end_date"),
+        Input("incident-filter-dropdown", "value"),
+        Input("kpi-select-dropdown", "value"),
+        Input("state-dropdown", "value"),
+    ],
+    prevent_initial_call=True,  # Skip execution before components are ready
+)
+def update_dependent_charts(
+    scatter_relayoutData,
+    start_date,
+    end_date,
+    incident_types,
+    kpi,
+    dropdown_state,
+):
+    # Re-filter data based on date and incident filters
+    filtered_data = filter_data_cached(data, start_date, end_date, incident_types)
+
+    # If zoom info is available, further filter the data
+    if scatter_relayoutData:
+        x_min = scatter_relayoutData.get("xaxis.range[0]", None)
+        x_max = scatter_relayoutData.get("xaxis.range[1]", None)
+        y_min = scatter_relayoutData.get("yaxis.range[0]", None)
+        y_max = scatter_relayoutData.get("yaxis.range[1]", None)
+
+        if x_min is not None and x_max is not None:
+            filtered_data = filtered_data[
+                (
+                    filtered_data["time_started_work"].dt.hour + filtered_data["time_started_work"].dt.minute / 60
+                    >= float(x_min)
+                )
+                & (
+                    filtered_data["time_started_work"].dt.hour + filtered_data["time_started_work"].dt.minute / 60
+                    <= float(x_max)
+                )
+            ]
+        if y_min is not None and y_max is not None:
+            filtered_data = filtered_data[
+                (
+                    filtered_data["time_of_incident"].dt.hour + filtered_data["time_of_incident"].dt.minute / 60
+                    >= float(y_min)
+                )
+                & (
+                    filtered_data["time_of_incident"].dt.hour + filtered_data["time_of_incident"].dt.minute / 60
+                    <= float(y_max)
+                )
+            ]
+
+    # Prepare data and figures for treemap and stacked bar chart
+    treemap_data = prepare_treemap_data_cached(filtered_data, dropdown_state, kpi)
+    stacked_bar_data = prepare_stacked_bar_chart_cached(filtered_data, dropdown_state)
+
+    treemap_fig = create_treemap(treemap_data, "incident_rate", dropdown_state)
+    stacked_bar_fig = create_stacked_bar_chart(stacked_bar_data, dropdown_state)
+
+    return treemap_fig, stacked_bar_fig
+
+
+@app.callback(
     Output("content", "children"),
     Output("content-metric-analysis", "children"),
     [
@@ -175,9 +236,7 @@ def update_tab_contents(
                                 dcc.Loading(
                                     children=[
                                         dcc.Graph(
-                                            figure=create_radar_chart(
-                                                radar_chart_data, dropdown_state
-                                            ),
+                                            figure=create_radar_chart(radar_chart_data, dropdown_state),
                                             id="radar-chart",
                                         ),
                                     ]
@@ -190,9 +249,7 @@ def update_tab_contents(
                                 dcc.Loading(
                                     children=[
                                         dcc.Graph(
-                                            figure=create_map(
-                                                map_data, kpi, dropdown_state
-                                            ),
+                                            figure=create_map(map_data, kpi, dropdown_state),
                                             id="map-container",
                                         ),
                                     ]
@@ -233,9 +290,7 @@ def update_tab_contents(
             dropdown_state,
             "incident_rate",
         )
-        stacked_bar_chart = prepare_stacked_bar_chart_cached(
-            filtered_data, dropdown_state
-        )
+        stacked_bar_chart = prepare_stacked_bar_chart_cached(filtered_data, dropdown_state)
         metric_analysis_content = html.Div(
             style={
                 "display": "flex",
@@ -296,9 +351,7 @@ def update_tab_contents(
                             dcc.Loading(
                                 children=[
                                     dcc.Graph(
-                                        figure=create_stacked_bar_chart(
-                                            stacked_bar_chart, dropdown_state
-                                        ),
+                                        figure=create_stacked_bar_chart(stacked_bar_chart, dropdown_state),
                                         id="stacked-bar-chart",
                                         style={"height": "100%", "width": "100%"},
                                     )

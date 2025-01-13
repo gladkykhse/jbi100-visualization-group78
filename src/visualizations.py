@@ -6,7 +6,6 @@ from plotly_resampler import FigureResampler
 
 from src.mappings import dropdown_options, state_map
 
-height = 600
 
 def transform_kpi_names(s):
     return " ".join(map(str.capitalize, s.split("_")))
@@ -123,7 +122,9 @@ def create_map(df, kpi="incident_rate", selected_state=None):
     max_kpi_state = df.loc[df[kpi].idxmax()]
     min_kpi_state = df.loc[df[kpi].idxmin()]
     kpi_naming = transform_kpi_names(kpi)
-    max_state_text = f"<b>Highest {kpi_naming}</b>: {state_map[max_kpi_state['state_code']]} ({max_kpi_state[kpi]:.2f})"
+    max_state_text = (
+        f"<b>Highest {kpi_naming}</b>: {state_map[max_kpi_state['state_code']]} ({max_kpi_state[kpi]:.2f})"
+    )
     min_state_text = f"<b>Lowest {kpi_naming}</b>: {state_map[min_kpi_state['state_code']]} ({min_kpi_state[kpi]:.2f})"
 
     # Create the base map
@@ -140,9 +141,7 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                 marker_line_color=border_color,  # Default boundary lines
                 colorbar=dict(title=dict(text=kpi_name)),
                 hovertemplate="<b>State:</b> %{text}<br><b>Value:</b> %{z:.2f}<extra></extra>",
-                text=df["state_code"].map(
-                    state_map
-                ),  # Add state names to the hover info
+                text=df["state_code"].map(state_map),  # Add state names to the hover info
                 hoverinfo="text+z",
             )
         )
@@ -166,9 +165,7 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                     autocolorscale=False,
                     marker_line_color="rgb(99, 110, 250)",  # Red border for the selected state
                     marker_line_width=2,  # Thicker border
-                    text=df["state_code"].map(
-                        state_map
-                    ),  # Add state names to the hover info
+                    text=df["state_code"].map(state_map),  # Add state names to the hover info
                     hovertemplate="<b>State:</b> %{text}<br><b>Value:</b> %{z:.2f}<extra></extra>",
                     showscale=False,  # No color scale for the highlight layer
                 )
@@ -231,7 +228,6 @@ def create_treemap(df, kpi, selected_state):
         color="metric",
         color_continuous_scale=sequential.Oranges,
         maxdepth=2,
-        height=height,
     )
 
     # Update hovertemplate for clarity
@@ -257,9 +253,7 @@ def create_splom(df, kpi, selected_state=None):
         # selected_state_data = df[df["state_code"] == selected_state].iloc[0]
 
         # Prepare constraintrange for each dimension
-        constrained_state = (
-            df["tickvals"].loc[df["state_code"] == selected_state].values[0]
-        )
+        constrained_state = df["tickvals"].loc[df["state_code"] == selected_state].values[0]
 
     else:
         constrained_state = None  # No filtering if no state is selected
@@ -282,9 +276,7 @@ def create_splom(df, kpi, selected_state=None):
                     values=df["tickvals"],
                     tickvals=df["tickvals"],
                     ticktext=df["state_code"].map(state_map).tolist(),
-                    constraintrange=[constrained_state - 0.5, constrained_state + 0.5]
-                    if constrained_state
-                    else None,
+                    constraintrange=[constrained_state - 0.5, constrained_state + 0.5] if constrained_state else None,
                 ),
                 dict(
                     label=dropdown_options[kpi],
@@ -328,7 +320,6 @@ def create_scatter_plot(df, selected_state):
     fig = FigureResampler(go.Figure())
 
     # Add a single trace for all data points
-    print(df["time_started_work"])
     fig.add_trace(
         go.Scatter(
             x=df["time_started_work"].dt.hour + df["time_started_work"].dt.minute / 60,
@@ -368,7 +359,6 @@ def create_scatter_plot(df, selected_state):
             title="Time of Incident (Hours)",
             range=[0, 24],  # Set min and max values for y-axis
         ),
-        height=height,
     )
     return fig
 
@@ -411,9 +401,6 @@ def create_stacked_bar_chart(df, selected_state):
         plot_bgcolor="white",
         margin=dict(l=120, r=10, t=140, b=80),
         showlegend=True,
-        legend=dict(
-            title="Establishment Type", orientation="h", x=0.5, xanchor="center", y=-0.4
-        ),
-        height=height,
+        legend=dict(title="Establishment Type", orientation="h", x=0.5, xanchor="center", y=-0.4),
     )
     return fig

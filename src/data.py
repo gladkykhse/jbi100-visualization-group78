@@ -23,31 +23,16 @@ def reduce_mem_usage(df):
                 if str(col_type)[:3] == "int":
                     if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
                         df[col] = df[col].astype(np.int8)
-                    elif (
-                        c_min > np.iinfo(np.int16).min
-                        and c_max < np.iinfo(np.int16).max
-                    ):
+                    elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
                         df[col] = df[col].astype(np.int16)
-                    elif (
-                        c_min > np.iinfo(np.int32).min
-                        and c_max < np.iinfo(np.int32).max
-                    ):
+                    elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
                         df[col] = df[col].astype(np.int32)
-                    elif (
-                        c_min > np.iinfo(np.int64).min
-                        and c_max < np.iinfo(np.int64).max
-                    ):
+                    elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
                         df[col] = df[col].astype(np.int64)
                 else:
-                    if (
-                        c_min > np.finfo(np.float16).min
-                        and c_max < np.finfo(np.float16).max
-                    ):
+                    if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
                         df[col] = df[col].astype(np.float16)
-                    elif (
-                        c_min > np.finfo(np.float32).min
-                        and c_max < np.finfo(np.float32).max
-                    ):
+                    elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
                         df[col] = df[col].astype(np.float32)
                     else:
                         df[col] = df[col].astype(np.float64)
@@ -129,9 +114,7 @@ def compute_agg_lost_workday_rate(df, column=None):
     )
 
     temp["total_lost_days"] = temp["dafw_num_away"] + temp["djtr_num_tr"]
-    temp["lost_workday_rate"] = np.where(
-        temp["case_number"] > 0, temp["total_lost_days"] / temp["case_number"], 0
-    )
+    temp["lost_workday_rate"] = np.where(temp["case_number"] > 0, temp["total_lost_days"] / temp["case_number"], 0)
     return temp[agg_cols + ["lost_workday_rate"]]
 
 
@@ -146,9 +129,7 @@ def compute_death_to_incident_ratio(df, column=None):
         .reset_index()
     )
 
-    temp["death_to_incident"] = np.where(
-        temp["case_number"] > 0, temp["death"] / temp["case_number"] * 1e4, 0
-    )
+    temp["death_to_incident"] = np.where(temp["case_number"] > 0, temp["death"] / temp["case_number"] * 1e4, 0)
     return temp[agg_cols + ["death_to_incident"]]
 
 
@@ -163,9 +144,7 @@ def compute_agg_severity_index(df, column=None):
         .reset_index()
     )
 
-    temp["severity_index"] = np.where(
-        temp["case_number"] > 0, temp["dafw_num_away"] / temp["case_number"], 0
-    )
+    temp["severity_index"] = np.where(temp["case_number"] > 0, temp["dafw_num_away"] / temp["case_number"], 0)
     return temp[agg_cols + ["severity_index"]]
 
 
@@ -231,22 +210,15 @@ def filter_data(df, start_date, end_date, filter_incident_types):
     end_date = datetime.fromisoformat(end_date)
 
     # Determine if filtering is necessary
-    use_precomputed = (
-        start_date == df["date_of_incident"].min()
-        and end_date == df["date_of_incident"].max()
-    )
+    use_precomputed = start_date == df["date_of_incident"].min() and end_date == df["date_of_incident"].max()
 
     if use_precomputed and not filter_incident_types:
         return df  # Return unfiltered dataset if precomputed can be used
 
     # Apply filtering
-    filtered_data = df[
-        (df["date_of_incident"] >= start_date) & (df["date_of_incident"] <= end_date)
-    ]
+    filtered_data = df[(df["date_of_incident"] >= start_date) & (df["date_of_incident"] <= end_date)]
     if filter_incident_types:
-        filtered_data = filtered_data[
-            filtered_data["type_of_incident"].isin(filter_incident_types)
-        ]
+        filtered_data = filtered_data[filtered_data["type_of_incident"].isin(filter_incident_types)]
 
     return filtered_data
 
@@ -263,10 +235,11 @@ def prepare_mean_radar_data(radar_region_safety_score):
 
 def calculate_mean_values(min_metric_values, max_metric_values, metrics, mean_values):
     return [
-        (mean_value - min_metric_values[metric])
-        / (max_metric_values[metric] - min_metric_values[metric])
-        if max_metric_values[metric] > min_metric_values[metric]
-        else 0
+        (
+            (mean_value - min_metric_values[metric]) / (max_metric_values[metric] - min_metric_values[metric])
+            if max_metric_values[metric] > min_metric_values[metric]
+            else 0
+        )
         for metric, mean_value in zip(metrics, mean_values)
     ]
 
@@ -295,19 +268,17 @@ def prepare_radar_data(df, state_code):
 
     # Scale metrics
     scaled_values = [
-        (metric_values[metric] - min_metric_values[metric])
-        / (max_metric_values[metric] - min_metric_values[metric])
-        if max_metric_values[metric] > min_metric_values[metric]
-        else 0
+        (
+            (metric_values[metric] - min_metric_values[metric])
+            / (max_metric_values[metric] - min_metric_values[metric])
+            if max_metric_values[metric] > min_metric_values[metric]
+            else 0
+        )
         for metric in metrics
     ]
-    mean_values = [
-        radar_region_safety_score[f"mean_{metric}"].iloc[0] for metric in metrics
-    ]
+    mean_values = [radar_region_safety_score[f"mean_{metric}"].iloc[0] for metric in metrics]
 
-    scaled_mean_values = calculate_mean_values(
-        min_metric_values, max_metric_values, metrics, mean_values
-    )
+    scaled_mean_values = calculate_mean_values(min_metric_values, max_metric_values, metrics, mean_values)
 
     # Construct radar data
     radar_data = {
@@ -355,9 +326,7 @@ def prepare_treemap_data(df, state_code, kpi):
     # Select the metric function
     metric_function = kpi_name_function_mapping[kpi]
     return (
-        temp.query(
-            "soc_description_1 != 'Insufficient info' & soc_description_1 != 'Not assigned'"
-        )
+        temp.query("soc_description_1 != 'Insufficient info' & soc_description_1 != 'Not assigned'")
         .groupby(["soc_description_1", "soc_description_2"], observed=True)
         .agg(
             count=(
@@ -393,12 +362,8 @@ def prepare_scatter_plot(df, state):
     )
 
     # Format time for hover information
-    aggregated_data["time_started_work_str"] = aggregated_data[
-        "time_started_work"
-    ].dt.strftime("%H:%M")
-    aggregated_data["time_of_incident_str"] = aggregated_data[
-        "time_of_incident"
-    ].dt.strftime("%H:%M")
+    aggregated_data["time_started_work_str"] = aggregated_data["time_started_work"].dt.strftime("%H:%M")
+    aggregated_data["time_of_incident_str"] = aggregated_data["time_of_incident"].dt.strftime("%H:%M")
 
     # Unique incident outcomes
     return aggregated_data
@@ -417,9 +382,9 @@ def prepare_stacked_bar_chart(df, state):
     )
 
     # Pivot the data for a stacked bar chart structure
-    pivot_data = aggregated_data.pivot(
-        index="incident_outcome", columns="establishment_type", values="count"
-    ).fillna(0)
+    pivot_data = aggregated_data.pivot(index="incident_outcome", columns="establishment_type", values="count").fillna(
+        0
+    )
     # Normalize the data by row (each type_of_incident adds up to 1)
     pivot_data_normalized = pivot_data.div(pivot_data.sum(axis=1), axis=0).reset_index()
 
