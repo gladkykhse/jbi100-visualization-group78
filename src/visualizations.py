@@ -219,24 +219,33 @@ def create_histogram(filtered_df, feature):
 
 def create_treemap(df, kpi, selected_state):
     kpi_name = dropdown_options[kpi]
-    # Create the treemap with hover information
+
+    # Adjust the 'values' column according to Stevens' Power Law
+    n = 0.7  # Stevens' Power Law exponent for area perception
+    df["scaled_count"] = df["count"] ** (1 / n)  # Compensatory scaling
+
+    # Create the treemap with scaled values
     fig = px.treemap(
         df,
         path=[px.Constant("US Market"), "soc_description_1", "soc_description_2"],
         title=f"{kpi_name} across different {state_map[selected_state]} jobs",
-        values="count",
+        values="scaled_count",  # Use scaled values for area
         color="metric",
+        custom_data="count",
         color_continuous_scale=sequential.Oranges,
         maxdepth=2,
     )
 
-    # Update hovertemplate for clarity
+    # Add the original count to customdata as a numpy array
+    fig.data[0].customdata = df["count"].to_numpy()
+
+    # Update hovertemplate to show the original 'count'
     fig.update_traces(
         marker=dict(cornerradius=1),
         hovertemplate=(
             "<b>Job description:</b> %{label}<br>"
-            "<b>Number of workers:</b> %{value}<br>"
-            f"<b>{kpi_name}:</b> " + "%{color}<extra></extra>"
+            "<b>Number of workers:</b> %{custom_data}<br>"  # Access customdata directly
+            f"<b>{kpi_name}:" + "</b> %{color}<extra></extra>"
         ),
     )
 

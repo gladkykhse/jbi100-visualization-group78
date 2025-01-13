@@ -110,11 +110,11 @@ def update_scatter_zoom_store(relayoutData):
     Output("stacked-bar-chart", "figure"),
     [
         Input("scatter-zoom-store", "data"),
-        Input("date-picker-range", "start_date"),
-        Input("date-picker-range", "end_date"),
-        Input("incident-filter-dropdown", "value"),
-        Input("kpi-select-dropdown", "value"),
-        Input("state-dropdown", "value"),
+        State("date-picker-range", "start_date"),
+        State("date-picker-range", "end_date"),
+        State("incident-filter-dropdown", "value"),
+        State("kpi-select-dropdown", "value"),
+        State("state-dropdown", "value"),
     ],
     prevent_initial_call=True,  # Skip execution before components are ready
 )
@@ -129,35 +129,16 @@ def update_dependent_charts(
     # Re-filter data based on date and incident filters
     filtered_data = filter_data_cached(data, start_date, end_date, incident_types)
 
-    # If zoom info is available, further filter the data
-    if scatter_relayoutData:
-        x_min = scatter_relayoutData.get("xaxis.range[0]", None)
-        x_max = scatter_relayoutData.get("xaxis.range[1]", None)
-        y_min = scatter_relayoutData.get("yaxis.range[0]", None)
-        y_max = scatter_relayoutData.get("yaxis.range[1]", None)
+    # If selected points info is available, filter by `naics_description_5`
+    if scatter_relayoutData and "points" in scatter_relayoutData:
+        selected_naics = [
+            point["text"] for point in scatter_relayoutData["points"] if "text" in point
+        ]
+        if selected_naics:
+            filtered_data = filtered_data[
+                filtered_data["naics_description_5"].isin(selected_naics)
+            ]
 
-        if x_min is not None and x_max is not None:
-            filtered_data = filtered_data[
-                (
-                    filtered_data["time_started_work"].dt.hour + filtered_data["time_started_work"].dt.minute / 60
-                    >= float(x_min)
-                )
-                & (
-                    filtered_data["time_started_work"].dt.hour + filtered_data["time_started_work"].dt.minute / 60
-                    <= float(x_max)
-                )
-            ]
-        if y_min is not None and y_max is not None:
-            filtered_data = filtered_data[
-                (
-                    filtered_data["time_of_incident"].dt.hour + filtered_data["time_of_incident"].dt.minute / 60
-                    >= float(y_min)
-                )
-                & (
-                    filtered_data["time_of_incident"].dt.hour + filtered_data["time_of_incident"].dt.minute / 60
-                    <= float(y_max)
-                )
-            ]
 
     # Prepare data and figures for treemap and stacked bar chart
     treemap_data = prepare_treemap_data_cached(filtered_data, dropdown_state, kpi)
