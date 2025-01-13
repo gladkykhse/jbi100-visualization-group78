@@ -109,77 +109,170 @@ def update_on_radar_click(click_data):
 
 
 # @app.callback(
-#     Output("scatter-zoom-store", "data"),
-#     Input("scatter-plot", "relayoutData"),
-#     prevent_initial_call=True,  # Prevent this callback from firing before scatter-plot is created
+#     Output("treemap-chart", "figure"),
+#     Output("stacked-bar-chart", "figure"),
+#     [
+#         # Input("scatter-zoom-store", "data"),
+#         Input("scatter-plot", "relayoutData"),
+#         State("date-picker-range", "start_date"),
+#         State("date-picker-range", "end_date"),
+#         State("incident-filter-dropdown", "value"),
+#         State("kpi-select-dropdown", "value"),
+#         State("state-dropdown", "value"),
+#     ],
+#     prevent_initial_call=True,  # Skip execution before components are ready
 # )
-# def update_scatter_zoom_store(relayoutData):
-#     # Simply pass along the relayoutData (or process if needed)
-#     return relayoutData if relayoutData else {}
+# @cache.memoize(timeout=600)  # Cache result for 10 minutes
+# def update_dependent_charts(
+#     scatter_relayoutData,
+#     start_date,
+#     end_date,
+#     incident_types,
+#     kpi,
+#     dropdown_state,
+# ):
+#     # Re-filter data based on date and incident filters
+#     filtered_data = filter_data_cached(data, start_date, end_date, incident_types)
+
+#     # If zoom info is available, further filter the data
+#     if scatter_relayoutData:
+#         x_min = scatter_relayoutData.get("xaxis.range[0]", None)
+#         x_max = scatter_relayoutData.get("xaxis.range[1]", None)
+#         y_min = scatter_relayoutData.get("yaxis.range[0]", None)
+#         y_max = scatter_relayoutData.get("yaxis.range[1]", None)
+#         if x_min is not None and x_max is not None:
+#             filtered_data = filtered_data[
+#                 (
+#                     filtered_data["time_started_work"].dt.hour + filtered_data["time_started_work"].dt.minute / 60
+#                     >= float(x_min)
+#                 )
+#                 & (
+#                     filtered_data["time_started_work"].dt.hour + filtered_data["time_started_work"].dt.minute / 60
+#                     <= float(x_max)
+#                 )
+#             ]
+#         if y_min is not None and y_max is not None:
+#             filtered_data = filtered_data[
+#                 (
+#                     filtered_data["time_of_incident"].dt.hour + filtered_data["time_of_incident"].dt.minute / 60
+#                     >= float(y_min)
+#                 )
+#                 & (
+#                     filtered_data["time_of_incident"].dt.hour + filtered_data["time_of_incident"].dt.minute / 60
+#                     <= float(y_max)
+#                 )
+#             ]
+
+#     # Prepare data and figures for treemap and stacked bar chart
+#     treemap_data = prepare_treemap_data_cached(filtered_data, dropdown_state, kpi)
+#     stacked_bar_data = prepare_stacked_bar_chart_cached(filtered_data, dropdown_state)
+
+#     treemap_fig = create_treemap(treemap_data, "incident_rate", dropdown_state)
+#     stacked_bar_fig = create_stacked_bar_chart(stacked_bar_data, dropdown_state)
+
+#     return treemap_fig, stacked_bar_fig
 
 
 @app.callback(
-    Output("treemap-chart", "figure"),
-    Output("stacked-bar-chart", "figure"),
     [
-        # Input("scatter-zoom-store", "data"),
-        Input("scatter-plot", "relayoutData"),
+        Output("treemap-chart", "figure"),
+        Output("scatter-plot", "figure"),
+    ],
+    [
+        Input("stacked-bar-chart", "clickData"),
         State("date-picker-range", "start_date"),
         State("date-picker-range", "end_date"),
         State("incident-filter-dropdown", "value"),
         State("kpi-select-dropdown", "value"),
         State("state-dropdown", "value"),
     ],
-    prevent_initial_call=True,  # Skip execution before components are ready
+    prevent_initial_call=True,
 )
-def update_dependent_charts(
-    scatter_relayoutData,
+@cache.memoize(timeout=600)  # Cache result for 10 minutes
+def update_graphs_on_barchart_click(
+    barchart_clickData,
     start_date,
     end_date,
     incident_types,
     kpi,
-    dropdown_state,
+    selected_state,
 ):
-    # Re-filter data based on date and incident filters
+    # Filter data based on the date range and incident types
     filtered_data = filter_data_cached(data, start_date, end_date, incident_types)
 
-    # If zoom info is available, further filter the data
-    if scatter_relayoutData:
-        x_min = scatter_relayoutData.get("xaxis.range[0]", None)
-        x_max = scatter_relayoutData.get("xaxis.range[1]", None)
-        y_min = scatter_relayoutData.get("yaxis.range[0]", None)
-        y_max = scatter_relayoutData.get("yaxis.range[1]", None)
-        if x_min is not None and x_max is not None:
-            filtered_data = filtered_data[
-                (
-                    filtered_data["time_started_work"].dt.hour + filtered_data["time_started_work"].dt.minute / 60
-                    >= float(x_min)
-                )
-                & (
-                    filtered_data["time_started_work"].dt.hour + filtered_data["time_started_work"].dt.minute / 60
-                    <= float(x_max)
-                )
-            ]
-        if y_min is not None and y_max is not None:
-            filtered_data = filtered_data[
-                (
-                    filtered_data["time_of_incident"].dt.hour + filtered_data["time_of_incident"].dt.minute / 60
-                    >= float(y_min)
-                )
-                & (
-                    filtered_data["time_of_incident"].dt.hour + filtered_data["time_of_incident"].dt.minute / 60
-                    <= float(y_max)
-                )
-            ]
+    # Handle filtering based on the clicked bar
+    if barchart_clickData and "points" in barchart_clickData:
+        clicked_outcome = barchart_clickData["points"][0]["y"]  # Incident outcome
+        filtered_data = filtered_data[
+            filtered_data["incident_outcome"] == clicked_outcome
+        ]
 
-    # Prepare data and figures for treemap and stacked bar chart
-    treemap_data = prepare_treemap_data_cached(filtered_data, dropdown_state, kpi)
-    stacked_bar_data = prepare_stacked_bar_chart_cached(filtered_data, dropdown_state)
+    # Prepare data and figures for treemap and scatter plot
+    treemap_data = prepare_treemap_data_cached(filtered_data, selected_state, kpi)
+    scatter_plot_data = prepare_scatter_plot_cached(filtered_data, selected_state)
 
-    treemap_fig = create_treemap(treemap_data, "incident_rate", dropdown_state)
-    stacked_bar_fig = create_stacked_bar_chart(stacked_bar_data, dropdown_state)
+    treemap_fig = create_treemap(treemap_data, kpi, selected_state)
+    scatter_plot_fig = create_scatter_plot(scatter_plot_data, selected_state)
 
-    return treemap_fig, stacked_bar_fig
+    return treemap_fig, scatter_plot_fig
+
+# @app.callback(
+#     [
+#         Output("stacked-bar-chart", "figure"),
+#         Output("scatter-plot", "figure"),
+#     ],
+#     [
+#         Input("treemap-chart", "clickData"),
+#     ],
+#     [
+#         State("date-picker-range", "start_date"),
+#         State("date-picker-range", "end_date"),
+#         State("incident-filter-dropdown", "value"),
+#         State("kpi-select-dropdown", "value"),
+#         State("state-dropdown", "value"),
+#     ],
+#     prevent_initial_call=True,
+# )
+# @cache.memoize(timeout=600)  # Cache result for 10 minutes
+# def update_graphs_with_treemap_click(
+#     treemap_clickData,
+#     start_date,
+#     end_date,
+#     incident_types,
+#     kpi,
+#     selected_state,
+# ):
+#     # Filter data based on the date range and incident types
+#     filtered_data = filter_data_cached(data, start_date, end_date, incident_types)
+
+#     # If a region on the treemap was clicked, further filter by the clicked region
+#     if treemap_clickData and "points" in treemap_clickData:
+#         print(treemap_clickData)
+#         clicked_label = treemap_clickData["points"][0]["label"]  # Get clicked label
+#         clicked_parent = treemap_clickData["points"][0].get(
+#             "parent", None
+#         )  # Get parent label if present
+#         # Filter data based on the clicked region
+#         if clicked_parent and clicked_parent != "US Market":
+#             filtered_data = filtered_data[
+#                 (filtered_data["soc_description_1"] == clicked_parent)
+#                 & (filtered_data["soc_description_2"] == clicked_label)
+#             ]
+#         elif clicked_label != "US Market":
+#             filtered_data = filtered_data[
+#                 (filtered_data["soc_description_1"] == clicked_label)
+#             ]
+
+
+#     # Prepare data and figures for stacked bar chart and scatter plot
+#     stacked_bar_data = prepare_stacked_bar_chart_cached(filtered_data, selected_state)
+#     scatter_plot_data = prepare_scatter_plot_cached(filtered_data, selected_state)
+
+#     stacked_bar_fig = create_stacked_bar_chart(stacked_bar_data, selected_state)
+#     scatter_plot_fig = create_scatter_plot(scatter_plot_data, selected_state)
+
+#     return stacked_bar_fig, scatter_plot_fig
+
 
 
 @app.callback(
@@ -204,7 +297,6 @@ def update_tab_contents(
     dropdown_state,
 ):
     filtered_data = filter_data_cached(data, start_date, end_date, incident_types)
-    print(filtered_data.shape)
     metric_analysis_content = html.Div()
     state_analysis_content = html.Div()
     if filtered_data.empty:

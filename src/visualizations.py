@@ -202,21 +202,6 @@ def create_map(df, kpi="incident_rate", selected_state=None):
     return fig
 
 
-def create_histogram(filtered_df, feature):
-    fig = px.histogram(
-        filtered_df,
-        x=feature,
-        title=f"Distribution of {feature.capitalize()}",
-        labels={feature: feature.capitalize()},
-    )
-    fig.update_layout(
-        xaxis_title=feature.capitalize(),
-        yaxis_title="Count",
-        bargap=0.1,
-    )
-    return fig
-
-
 def create_treemap(df, kpi, selected_state):
     kpi_name = dropdown_options[kpi]
 
@@ -241,7 +226,13 @@ def create_treemap(df, kpi, selected_state):
 
     # Update hovertemplate to show the original 'count'
     fig.update_traces(
-        marker=dict(cornerradius=1),
+        marker=dict(
+            cornerradius=1,
+            line=dict(
+                color="rgba(0, 0, 0, 0.4)",  # Border color
+                width=1,        # Border thickness
+            ),
+        ),
         hovertemplate=(
             "<b>Job description:</b> %{label}<br>"
             "<b>Number of workers:</b> %{custom_data}<br>"  # Access customdata directly
@@ -362,11 +353,11 @@ def create_scatter_plot(df, selected_state):
         title=f"Work Start vs Incident Time in {state_map[selected_state]}",
         xaxis=dict(
             title="Time Started Work (Hours)",
-            range=[0, 24],  # Set min and max values for x-axis
+            range=[-0.5, 24],  # Set min and max values for x-axis
         ),
         yaxis=dict(
             title="Time of Incident (Hours)",
-            range=[0, 24],  # Set min and max values for y-axis
+            range=[-0.5, 24],  # Set min and max values for y-axis
         ),
     )
     return fig
