@@ -230,7 +230,7 @@ def create_treemap(df, kpi, selected_state):
             cornerradius=1,
             line=dict(
                 color="rgba(0, 0, 0, 0.4)",  # Border color
-                width=1,        # Border thickness
+                width=1,  # Border thickness
             ),
         ),
         hovertemplate=(

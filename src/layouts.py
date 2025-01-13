@@ -14,7 +14,12 @@ main_layout = html.Div(
     },
     children=[
         # Menu bar at the top
-        dcc.Store(id="scatter-zoom-store", data={}),
+        dcc.Store(id="store-treemap1"),
+        dcc.Store(id="store-bar1"),
+        dcc.Store(id="store-scatter1"),
+        dcc.Store(id="store-treemap2"),
+        dcc.Store(id="store-bar2"),
+        dcc.Store(id="store-scatter2"),
         html.Link(rel="stylesheet", href="data:text/css,body { margin: 0; }"),
         html.Div(
             style={
