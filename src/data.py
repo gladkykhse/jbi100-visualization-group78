@@ -271,14 +271,12 @@ def calculate_mean_values(min_metric_values, max_metric_values, metrics, mean_va
     ]
 
 
-def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
-    filtered_data = filter_data(data, start_date, end_date, filter_incident_types)
-
+def prepare_radar_data(df, state_code):
     # Compute radar region safety score
-    if filtered_data is data:  # No filtering applied, use precomputed values
+    if df is data:  # No filtering applied, use precomputed values
         radar_region_safety_score = region_safety_score
     else:
-        radar_region_safety_score = compute_agg_safety_score(filtered_data)
+        radar_region_safety_score = compute_agg_safety_score(df)
 
     radar_region_safety_score = prepare_mean_radar_data(radar_region_safety_score)
 
@@ -323,14 +321,11 @@ def prepare_radar_data(state_code, start_date, end_date, filter_incident_types):
 
 
 def prepare_state_data(
-    start_date,
-    end_date,
-    filter_incident_types,
+    df,
     kpi="incident_rate",
 ):
-    filtered_data = filter_data(data, start_date, end_date, filter_incident_types)
     aggregated_data = (
-        filtered_data.groupby("state_code", observed=False)
+        df.groupby("state_code", observed=False)
         .agg(
             annual_average_employees_median=("annual_average_employees", "median"),
             annual_average_employees_sum=("annual_average_employees", "median"),
@@ -343,34 +338,19 @@ def prepare_state_data(
         .reset_index()
     )
     aggregated_data["injury_density"] = (
-        aggregated_data["case_number"]
-        / aggregated_data["annual_average_employees_sum"]
+        aggregated_data["case_number"] / aggregated_data["annual_average_employees_sum"]
     )
 
     return pd.merge(
         aggregated_data,
-        kpi_name_function_mapping[kpi](filtered_data),
+        kpi_name_function_mapping[kpi](df),
         on="state_code",
         how="inner",
     )
 
 
-def prepare_bar_chart_data(
-    state_code, feature, kpi, start_date, end_date, filter_incident_types
-):
-    state_data = data[data["state_code"] == state_code]
-    filtered_data = filter_data(state_data, start_date, end_date, filter_incident_types)
-
-    # Compute the KPI
-    return kpi_name_function_mapping[kpi](filtered_data, feature)
-
-
-def prepare_treemap_data(state_code, kpi, start_date, end_date, incident_types):
-    temp = filter_data(
-        data.query("state_code == @state_code"), start_date, end_date, incident_types
-    )
-
-    # Further filter for the specific state
+def prepare_treemap_data(df, state_code, kpi):
+    temp = df[df["state_code"] == state_code]
 
     # Select the metric function
     metric_function = kpi_name_function_mapping[kpi]
@@ -391,16 +371,15 @@ def prepare_treemap_data(state_code, kpi, start_date, end_date, incident_types):
                 .iloc[0, -1],
             ),
         )
-        .reset_index().query("count > 10")
+        .reset_index()
+        .query("count > 10")
     )
 
 
-def prepare_scatter_plot(state, start_date, end_date, filter_incident_types):
-    filtered_data = filter_data(data, start_date, end_date, filter_incident_types)
-
+def prepare_scatter_plot(df, state):
     # Filter data for the state of Ohio
     aggregated_data = (
-        filtered_data.query("state_code == @state")
+        df[df["state_code"] == state]
         .groupby("naics_description_5", observed=True)
         .agg(
             {
@@ -422,14 +401,13 @@ def prepare_scatter_plot(state, start_date, end_date, filter_incident_types):
     ].dt.strftime("%H:%M")
 
     # Unique incident outcomes
-    incident_outcomes = aggregated_data["establishment_type"].unique()
-    return aggregated_data, incident_outcomes
+    return aggregated_data
 
 
-def prepare_stacked_bar_chart(state, start_date, end_date, filter_incident_types):
-    filtered_data = filter_data(
-        data, start_date, end_date, filter_incident_types
-    ).query("state_code == @state").query("establishment_type != 'Not Stated' & establishment_type != 'Invalid Entry'")
+def prepare_stacked_bar_chart(df, state):
+    filtered_data = df.query(
+        "state_code == @state & establishment_type != 'Not Stated' & establishment_type != 'Invalid Entry'"
+    )
 
     # Aggregate the data: count incidents by type and establishment
     aggregated_data = (

@@ -5,6 +5,8 @@ from flask import Flask
 from flask_caching import Cache
 
 from src.data import (
+    data,
+    filter_data,
     prepare_radar_data,
     prepare_scatter_plot,
     prepare_stacked_bar_chart,
@@ -48,80 +50,35 @@ def update_left_menu_visibility(tab_name):
     return [{"display": "none"}]
 
 
-# @app.callback(
-#     [
-#         Output("bar-chart-sector", "figure"),
-#         Output("treemap-chart", "figure"),
-#         Output("bar-chart-soc", "figure"),
-#     ],
-#     [
-#         Input("radar-chart", "clickData"),
-#         Input("state-dropdown", "value"),
-#         Input("date-picker-range", "start_date"),
-#         Input("date-picker-range", "end_date"),
-#         Input("incident-filter-dropdown", "value"),
-#         Input("splom-container", "dimensions"),
-#     ],
-# )
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
-def prepare_scatter_plot_cached(state_code, start_date, end_date, incident_types):
-    scatter_plot_data, incident_outcomes = prepare_scatter_plot(
-        state_code,
-        start_date,
-        end_date,
-        incident_types,
-    )
-    return scatter_plot_data, incident_outcomes
+def filter_data_cached(df, start_date, end_date, incident_types):
+    return filter_data(df, start_date, end_date, incident_types)
 
 
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
-def prepare_treemap_data_cached(
-    state_code, selected_kpi, start_date, end_date, incident_types
-):
-    return prepare_treemap_data(
-        state_code, selected_kpi, start_date, end_date, incident_types
-    )
+def prepare_scatter_plot_cached(df, state_code):
+    scatter_plot_data = prepare_scatter_plot(df, state_code)
+    return scatter_plot_data
 
 
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
-def prepare_stacked_bar_chart_cached(state_code, start_date, end_date, incident_types):
-    return prepare_stacked_bar_chart(state_code, start_date, end_date, incident_types)
+def prepare_treemap_data_cached(df, state_code, selected_kpi):
+    return prepare_treemap_data(df, state_code, selected_kpi)
 
 
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
-def prepare_radar_data_cached(dropdown_state, start_date, end_date, incident_types):
-    return prepare_radar_data(dropdown_state, start_date, end_date, incident_types)
+def prepare_stacked_bar_chart_cached(df, state_code):
+    return prepare_stacked_bar_chart(df, state_code)
 
 
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
-def prepare_state_data_cached(start_date, end_date, incident_types, kpi):
-    return prepare_state_data(start_date, end_date, incident_types, kpi)
+def prepare_radar_data_cached(df, dropdown_state):
+    return prepare_radar_data(df, dropdown_state)
 
 
-def update_bar_charts(
-    click_data, state_code, start_date, end_date, incident_types, restyleData
-):
-    selected_kpi = "incident_rate"
-    if click_data and "points" in click_data:
-        selected_kpi = dropdown_options_rev[click_data["points"][0]["theta"]]
-
-    scatter_plot_data, incident_outcomes = prepare_scatter_plot_cached(
-        state_code, start_date, end_date, incident_types
-    )
-
-    treemap_data = prepare_treemap_data_cached(
-        state_code, selected_kpi, start_date, end_date, incident_types
-    )
-
-    stacked_bar_chart = prepare_stacked_bar_chart_cached(
-        state_code, start_date, end_date, incident_types
-    )
-
-    return (
-        create_scatter_plot(scatter_plot_data, incident_outcomes, state_code),
-        create_treemap(treemap_data, selected_kpi, state_code),
-        create_stacked_bar_chart(stacked_bar_chart, state_code),
-    )
+@cache.memoize(timeout=600)  # Cache result for 10 minutes
+def prepare_state_data_cached(df, kpi):
+    return prepare_state_data(df, kpi)
 
 
 @app.callback(
@@ -160,7 +117,6 @@ def update_on_radar_click(click_data):
         Input("date-picker-range", "end_date"),
         Input("incident-filter-dropdown", "value"),
         Input("kpi-select-dropdown", "value"),
-        Input("selected_state", "data"),
         Input("state-dropdown", "value"),
     ],
 )
@@ -171,204 +127,194 @@ def update_tab_contents(
     end_date,
     incident_types,
     kpi,
-    selected_state,
     dropdown_state,
 ):
-    state_analysis_content = html.Div()
+    filtered_data = filter_data_cached(data, start_date, end_date, incident_types)
+    print(filtered_data.shape)
     metric_analysis_content = html.Div()
+    state_analysis_content = html.Div()
+    if filtered_data.empty:
+        return html.Div(
+            html.H2(
+                "No data for filters. Try to change the filters or refresh the page to reset them",
+                style="margin: 1em 2em",
+            )
+        ), html.Div(
+            html.H2(
+                "No data for filters. Try to change the filters or refresh the page to reset them",
+                style="margin: 1em 2em",
+            )
+        )
+    if tab_name == "state_analysis_tab" and start_date and end_date:
+        map_data = prepare_state_data_cached(filtered_data, kpi)
 
-    if tab_name == "state_analysis_tab" and start_date and end_date and kpi:
-        map_data = prepare_state_data_cached(start_date, end_date, incident_types, kpi)
+        radar_chart_data = prepare_radar_data_cached(filtered_data, dropdown_state)
 
-        if selected_state is not None:
-            dropdown_state = selected_state
-
-        radar_chart_data = prepare_radar_data_cached(
-            dropdown_state, start_date, end_date, incident_types
+        state_analysis_content = html.Div(
+            style={
+                "display": "flex",
+                "flexDirection": "column",  # Stack rows vertically
+                "padding": "10px",
+                "height": "calc(100vh - 8rem - 40px)",
+            },
+            children=[
+                # Row 1: Radar (left) and Map (right)
+                html.Div(
+                    style={
+                        "display": "flex",
+                        "flexDirection": "row",  # Place children side by side
+                        "width": "100%",
+                    },
+                    children=[
+                        html.Div(
+                            style={
+                                "width": "50%",
+                                "padding": "5px",
+                            },
+                            children=[
+                                dcc.Loading(
+                                    children=[
+                                        dcc.Graph(
+                                            figure=create_radar_chart(
+                                                radar_chart_data, dropdown_state
+                                            ),
+                                            id="radar-chart",
+                                        ),
+                                    ]
+                                )
+                            ],
+                        ),
+                        html.Div(
+                            style={"width": "50%", "padding": "5px"},
+                            children=[
+                                dcc.Loading(
+                                    children=[
+                                        dcc.Graph(
+                                            figure=create_map(
+                                                map_data, kpi, dropdown_state
+                                            ),
+                                            id="map-container",
+                                        ),
+                                    ]
+                                )
+                            ],
+                        ),
+                    ],
+                ),
+                # Row 2: The splom below
+                html.Div(
+                    style={
+                        "width": "100%",
+                        "height": "800px",
+                        "marginTop": "20px",
+                        "flex": "1",
+                    },
+                    children=[
+                        dcc.Loading(
+                            children=[
+                                dcc.Graph(
+                                    figure=create_splom(map_data, kpi, dropdown_state),
+                                    id="splom-container",
+                                )
+                            ],
+                        )
+                    ],
+                ),
+            ],
         )
 
-        if not map_data.empty:
-            state_analysis_content = html.Div(
-                style={
-                    "display": "flex",
-                    "flexDirection": "column",  # Stack rows vertically
-                    "padding": "10px",
-                    "height": "calc(100vh - 8rem - 40px)",
-
-                },
-                children=[
-                    # Row 1: Radar (left) and Map (right)
-                    html.Div(
-                        style={
-                            "display": "flex",
-                            "flexDirection": "row",  # Place children side by side
-                            "width": "100%",
-                        },
-                        children=[
-                            html.Div(
-                                style={
-                                    "width": "50%",
-                                    "padding": "5px",
-                                },
-                                children=[
-                                    dcc.Loading(
-                                        children=[
-                                            dcc.Graph(
-                                                figure=create_radar_chart(
-                                                    radar_chart_data, dropdown_state
-                                                ),
-                                                id="radar-chart",
-                                            ),
-                                        ]
-                                    )
-                                ],
-                            ),
-                            html.Div(
-                                style={"width": "50%", "padding": "5px"},
-                                children=[
-                                    dcc.Loading(
-                                        children=[
-                                            dcc.Graph(
-                                                figure=create_map(
-                                                    map_data, kpi, dropdown_state
-                                                ),
-                                                id="map-container",
-                                            ),
-                                        ]
-                                    )
-                                ],
-                            ),
-                        ],
-                    ),
-                    # Row 2: The splom below
-                    html.Div(
-                        style={
-                            "width": "100%",
-                            "height": "800px",
-                            "marginTop": "20px",
-                            "flex": "1",
-                        },
-                        children=[
+    if tab_name == "metric_analysis_tab":
+        scatter_plot_data = prepare_scatter_plot_cached(
+            filtered_data,
+            dropdown_state,
+        )
+        treemap_data = prepare_treemap_data_cached(
+            filtered_data,
+            dropdown_state,
+            "incident_rate",
+        )
+        stacked_bar_chart = prepare_stacked_bar_chart_cached(
+            filtered_data, dropdown_state
+        )
+        metric_analysis_content = html.Div(
+            style={
+                "display": "flex",
+                "alignContent": "center",
+                "justifyContent": "center",
+                "flexDirection": "column",
+                "padding": "1rem",
+                "height": "calc(100vh - 8rem - 40px)",
+            },
+            children=[
+                html.Div(
+                    style={
+                        "display": "grid",
+                        "gridTemplateColumns": "1fr 1fr",  # Two equal-width columns
+                        "gridTemplateRows": "1fr 1fr",  # Equal-height rows
+                        "gap": "1rem",  # Add spacing between graphs
+                        "flexGrow": "1",  # Allow grid to grow to fill space
+                    },
+                    children=[
+                        # First Graph: Spanning from [0,0] to [1,1]
+                        html.Div(
                             dcc.Loading(
                                 children=[
                                     dcc.Graph(
-                                        figure=create_splom(
-                                            map_data, kpi, dropdown_state
+                                        figure=create_scatter_plot(
+                                            scatter_plot_data,
+                                            dropdown_state,
                                         ),
-                                        id="splom-container",
+                                        id="scatter-plot",
+                                        style={"height": "100%", "width": "100%"},
                                     )
-                                ],
-                            )
-                        ],
-                    ),
-                ],
-            )
-        else:
-            state_analysis_content = html.Div(
-                html.H2("No data for selected date range.", style="margin: 1em 2em")
-            )
-
-    if tab_name == "metric_analysis_tab" and dropdown_state and start_date and end_date:
-        radar_chart_data = prepare_radar_data_cached(
-            dropdown_state, start_date, end_date, incident_types
+                                ]
+                            ),
+                        ),
+                        # Second Graph: Spanning [2,0] to [2,2]
+                        html.Div(
+                            dcc.Loading(
+                                children=[
+                                    dcc.Graph(
+                                        figure=create_treemap(
+                                            treemap_data,
+                                            "incident_rate",
+                                            dropdown_state,
+                                        ),
+                                        id="treemap-chart",
+                                    )
+                                ]
+                            ),
+                            style={
+                                "gridColumn": "1/3",  # Spans columns 1 to 3
+                                "gridRow": "2",
+                                "height": "100%",
+                                "width": "100%",  # Occupies the third row
+                            },
+                        ),
+                        # Third Graph: Spanning [2,0] to [2,1]
+                        html.Div(
+                            dcc.Loading(
+                                children=[
+                                    dcc.Graph(
+                                        figure=create_stacked_bar_chart(
+                                            stacked_bar_chart, dropdown_state
+                                        ),
+                                        id="stacked-bar-chart",
+                                        style={"height": "100%", "width": "100%"},
+                                    )
+                                ]
+                            ),
+                            style={
+                                "gridColumn": "2",  # Spans columns 1 to 2
+                                "gridRow": "1",
+                                "height": "100%",
+                                "width": "100%",  # Occupies the third row
+                            },
+                        ),
+                    ],
+                ),
+            ],
         )
-
-        if not radar_chart_data.empty:
-            scatter_plot_data, incident_outcomes = prepare_scatter_plot_cached(
-                dropdown_state,
-                start_date,
-                end_date,
-                incident_types,
-            )
-            treemap_data = prepare_treemap_data_cached(
-                dropdown_state, "incident_rate", start_date, end_date, incident_types
-            )
-            stacked_bar_chart = prepare_stacked_bar_chart_cached(
-                dropdown_state, start_date, end_date, incident_types
-            )
-
-            metric_analysis_content = html.Div(
-                style={
-                    "display": "flex",
-                    "alignContent": "center",
-                    "justifyContent": "center",
-                    "flexDirection": "column",
-                    "padding": "1rem",
-                    "height": "calc(100vh - 8rem - 40px)"
-                },
-                children=[
-                    html.Div(
-                        style={
-                            "display": "grid",
-                            "gridTemplateColumns": "1fr 1fr",  # Two equal-width columns
-                            "gridTemplateRows": "1fr 1fr",  # Equal-height rows
-                            "gap": "1rem",  # Add spacing between graphs
-                            "flexGrow": "1",  # Allow grid to grow to fill space
-                        },
-                        children=[
-                            # First Graph: Spanning from [0,0] to [1,1]
-                            html.Div(
-                                dcc.Loading(
-                                    children=[
-                                        dcc.Graph(
-                                            figure=create_scatter_plot(
-                                                scatter_plot_data,
-                                                incident_outcomes,
-                                                dropdown_state,
-                                            ),
-                                            id="scatter-plot",
-                                            style={"height": "100%", "width": "100%"}
-                                        )
-                                    ]
-                                ),
-                            ),
-                            # Second Graph: Spanning [2,0] to [2,2]
-                            html.Div(
-                                dcc.Loading(
-                                    children=[
-                                        dcc.Graph(
-                                            figure=create_treemap(
-                                                treemap_data,
-                                                "incident_rate",
-                                                dropdown_state,
-                                            ),
-                                            id="treemap-chart",
-                                        )
-                                    ]
-                                ),
-                                style={
-                                    "gridColumn": "1/3",  # Spans columns 1 to 3
-                                    "gridRow": "2",
-                                    "height": "100%", "width": "100%",  # Occupies the third row
-                                },
-                            ),
-                            # Third Graph: Spanning [2,0] to [2,1]
-                            html.Div(
-                                dcc.Loading(
-                                    children=[
-                                        dcc.Graph(
-                                            figure=create_stacked_bar_chart(
-                                                stacked_bar_chart, dropdown_state
-                                            ),
-                                            id="stacked-bar-chart",
-                                            style={"height": "100%", "width": "100%"}
-                                        )
-                                    ]
-                                ),
-                                style={
-                                    "gridColumn": "2",  # Spans columns 1 to 2
-                                    "gridRow": "1",
-                                    "height": "100%", "width": "100%",  # Occupies the third row
-                                },
-                            ),
-                        ],
-                    ),
-                ],
-            )
-        else:
-            metric_analysis_content = html.Div(
-                "No data available for the selected feature."
-            )
 
     return state_analysis_content, metric_analysis_content
 

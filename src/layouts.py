@@ -17,7 +17,6 @@ main_layout = html.Div(
             rel="stylesheet",
             href="data:text/css,body { margin: 0; }"
         ),
-        dcc.Store(id="selected_state", storage_type="memory"),
         html.Div(
             style={
                 "width": "100%",

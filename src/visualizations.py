@@ -324,10 +324,11 @@ def create_splom(df, kpi, selected_state=None):
     return fig
 
 
-def create_scatter_plot(df, incident_outcomes, selected_state):
+def create_scatter_plot(df, selected_state):
     fig = FigureResampler(go.Figure())
 
     # Add a single trace for all data points
+    print(df["time_started_work"])
     fig.add_trace(
         go.Scatter(
             x=df["time_started_work"].dt.hour + df["time_started_work"].dt.minute / 60,
