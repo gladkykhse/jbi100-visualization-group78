@@ -10,23 +10,28 @@ main_layout = html.Div(
         "height": "100vh",
         "margin": "0",
         "padding": "0",
+        "boxSizing": "border-box",
     },
     children=[
         # Menu bar at the top
-        dcc.Store(id="selected_state", storage_type="memory"),
+        dcc.Store(id="scatter-zoom-store", data={}),
+        html.Link(rel="stylesheet", href="data:text/css,body { margin: 0; }"),
         html.Div(
             style={
                 "width": "100%",
                 "backgroundColor": "#2c3e50",
-                "padding": "1%",
                 "color": "white",
                 "textAlign": "center",
                 "boxSizing": "border-box",
             },
             children=[
-                html.H2(
+                html.H1(
                     "Work-related injuries dashboard",
-                    style={"margin": "0", "fontSize": "1.5em"},
+                    style={
+                        "margin": "0",
+                        "fontSize": "2em",
+                        "padding": "0.5em 0",
+                    },
                 ),
             ],
         ),
@@ -36,19 +41,19 @@ main_layout = html.Div(
                 "display": "flex",
                 "flexGrow": "1",
                 "height": "100%",
-                "overflow": "auto",
+                "overflow": "hidden",
             },
             children=[
                 # Dropdown menu on the left (Sidebar)
                 html.Div(
                     id="left-menu",
                     style={
-                        "width": "20%",
+                        "width": "15%",
                         "backgroundColor": "#f4f4f4",
-                        "padding": "2%",
+                        "padding": "1%",
                         "borderRight": "1px solid #dfe4ea",
                         "boxSizing": "border-box",
-                        "minHeight": "100vh",  # Ensures it always fills the viewport height
+                        "minHeight": "calc(100vh - 3rem)",  # Ensures it always fills the viewport height
                         "flexShrink": "0",  # Prevents sidebar from shrinking
                         "overflowY": "auto",  # Adds scrolling if content exceeds the height
                     },
@@ -63,6 +68,7 @@ main_layout = html.Div(
                                     value=state_codes[0],
                                     placeholder="Select State",
                                     style={"width": "100%"},
+                                    clearable=False,
                                 ),
                             ],
                         ),
@@ -77,6 +83,7 @@ main_layout = html.Div(
                                     placeholder="Select KPI",
                                     optionHeight=50,
                                     style={"width": "100%"},
+                                    clearable=False,
                                 ),
                             ],
                         ),
@@ -110,35 +117,16 @@ main_layout = html.Div(
                                 ),
                             ],
                         ),
-                        html.Div(
-                            id="time-period-container",
-                            children=[
-                                html.H4("Select Time Period", style={"marginBottom": "5%"}),
-                                dcc.Dropdown(
-                                    id="time-period-dropdown",
-                                    options=[
-                                        {"label": "Year", "value": "incident_year"},
-                                        {"label": "Month", "value": "incident_month"},
-                                        {
-                                            "label": "Weekday",
-                                            "value": "incident_weekday",
-                                        },
-                                    ],
-                                    value="incident_year",
-                                    placeholder="Select time period",
-                                    style={"width": "100%"},
-                                ),
-                            ],
-                        ),
                     ],
                 ),
                 # Tabs and visualizations on the right (Main Content)
                 html.Div(
                     style={
-                        "width": "80%",
-                        "padding": "0%",
+                        "width": "85%",
+                        "padding": "0",
                         "boxSizing": "border-box",
                         "overflow": "auto",
+                        "height": "100%",
                     },
                     children=[
                         dcc.Tabs(
