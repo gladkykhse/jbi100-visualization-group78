@@ -4,17 +4,30 @@ from dash.dependencies import Input, Output, State
 from flask import Flask
 from flask_caching import Cache
 
-from src.data import (data, filter_data, prepare_radar_data,
-                      prepare_scatter_plot, prepare_stacked_bar_chart,
-                      prepare_state_data, prepare_treemap_data)
+from src.data import (
+    data,
+    filter_data,
+    prepare_radar_data,
+    prepare_scatter_plot,
+    prepare_stacked_bar_chart,
+    prepare_state_data,
+    prepare_treemap_data,
+)
 from src.layouts import main_layout
 from src.mappings import dropdown_options_rev
-from src.visualizations import (create_map, create_radar_chart,
-                                create_scatter_plot, create_splom,
-                                create_stacked_bar_chart, create_treemap)
+from src.visualizations import (
+    create_map,
+    create_radar_chart,
+    create_scatter_plot,
+    create_splom,
+    create_stacked_bar_chart,
+    create_treemap,
+)
 
 application = Flask(__name__)
-cache = Cache(application, config={"CACHE_TYPE": "SimpleCache"})  # Use "RedisCache" for production
+cache = Cache(
+    application, config={"CACHE_TYPE": "SimpleCache"}
+)  # Use "RedisCache" for production
 
 
 app = dash.Dash(__name__, server=application)
@@ -139,7 +152,6 @@ def update_dependent_charts(
                 filtered_data["naics_description_5"].isin(selected_naics)
             ]
 
-
     # Prepare data and figures for treemap and stacked bar chart
     treemap_data = prepare_treemap_data_cached(filtered_data, dropdown_state, kpi)
     stacked_bar_data = prepare_stacked_bar_chart_cached(filtered_data, dropdown_state)
@@ -217,7 +229,9 @@ def update_tab_contents(
                                 dcc.Loading(
                                     children=[
                                         dcc.Graph(
-                                            figure=create_radar_chart(radar_chart_data, dropdown_state),
+                                            figure=create_radar_chart(
+                                                radar_chart_data, dropdown_state
+                                            ),
                                             id="radar-chart",
                                         ),
                                     ]
@@ -230,7 +244,9 @@ def update_tab_contents(
                                 dcc.Loading(
                                     children=[
                                         dcc.Graph(
-                                            figure=create_map(map_data, kpi, dropdown_state),
+                                            figure=create_map(
+                                                map_data, kpi, dropdown_state
+                                            ),
                                             id="map-container",
                                         ),
                                     ]
@@ -271,7 +287,9 @@ def update_tab_contents(
             dropdown_state,
             "incident_rate",
         )
-        stacked_bar_chart = prepare_stacked_bar_chart_cached(filtered_data, dropdown_state)
+        stacked_bar_chart = prepare_stacked_bar_chart_cached(
+            filtered_data, dropdown_state
+        )
         metric_analysis_content = html.Div(
             style={
                 "display": "flex",
@@ -332,7 +350,9 @@ def update_tab_contents(
                             dcc.Loading(
                                 children=[
                                     dcc.Graph(
-                                        figure=create_stacked_bar_chart(stacked_bar_chart, dropdown_state),
+                                        figure=create_stacked_bar_chart(
+                                            stacked_bar_chart, dropdown_state
+                                        ),
                                         id="stacked-bar-chart",
                                         style={"height": "100%", "width": "100%"},
                                     )
@@ -351,46 +371,6 @@ def update_tab_contents(
         )
 
     return state_analysis_content, metric_analysis_content
-
-@app.callback(
-    Output("map-container", "figure"),
-    [
-        Input("radar-chart", "clickData"),
-        State("selected_state", "data"),
-        State("date-picker-range", "start_date"),
-        State("date-picker-range", "end_date"),
-        State("incident-filter-dropdown", "value"),
-    ],
-)
-def update_map_on_radar_click(click_data, selected_state, start_date, end_date, incident_types):
-    if click_data and "points" in click_data:
-        # Retrieve the metric name from the clicked radar segment
-        selected_metric = dropdown_options_rev[click_data["points"][0]["theta"]]
-
-    # Prepare the data for the map based on the selected metric
-    map_data = prepare_state_data_cached(start_date, end_date, incident_types, selected_metric)
-
-    # Create and return the updated map figure
-    return create_map(map_data, kpi=selected_metric, selected_state=selected_state)
-
-@app.callback(
-    Output("splom-container", "figure"),  # Ensure this matches your PSP graph's ID
-    [
-        Input("radar-chart", "clickData"),
-        State("date-picker-range", "start_date"),
-        State("date-picker-range", "end_date"),
-        State("incident-filter-dropdown", "value"),
-        State("selected_state", "data"),
-    ],
-)
-def update_psp_on_radar_click(click_data, start_date, end_date, incident_types, selected_state):
-    if click_data and "points" in click_data:
-        selected_metric = dropdown_options_rev.get(click_data["points"][0]["theta"], "default_metric")
-    else:
-        selected_metric = "default_metric"
-
-    psp_data = prepare_state_data_cached(start_date, end_date, incident_types, selected_metric)
-    return create_splom(psp_data, kpi=selected_metric, selected_state=selected_state)
 
 
 if __name__ == "__main__":

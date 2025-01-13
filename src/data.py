@@ -341,7 +341,6 @@ def prepare_treemap_data(df, state_code, kpi):
             ),
         )
         .reset_index()
-        .query("count > 10")
     )
 
 

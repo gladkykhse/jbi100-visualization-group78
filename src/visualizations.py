@@ -411,5 +411,6 @@ def create_stacked_bar_chart(df, selected_state):
         margin=dict(l=120, r=10, t=140, b=80),
         showlegend=True,
         legend=dict(title="Establishment Type", orientation="h", x=0.5, xanchor="center", y=-0.4),
+        dragmode=False,
     )
     return fig
