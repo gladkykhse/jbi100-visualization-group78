@@ -12,7 +12,7 @@ Follow these steps to set up and run the application:
 1. Clone the repository:
 
    ```bash
-   git clone git+https://github.com/gladkykhse/jbi100-visualization-group78.git
+   git clone https://github.com/gladkykhse/jbi100-visualization-group78.git
    ```
 
 2. Navigate to the project directory:
