@@ -1,4 +1,5 @@
 # application.py
+import os
 
 import dash
 from dash import dcc, html
@@ -518,4 +519,6 @@ def update_tab_contents(
 
 
 if __name__ == "__main__":
-    application.run(debug=True, host="0.0.0.0", port=8080)
+    application.run(debug=True,
+                    host=os.environ.get("HOST", None),
+                    port=os.environ.get("PORT", None))
