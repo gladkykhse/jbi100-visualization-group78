@@ -181,11 +181,11 @@ def update_dependent_charts(
 
     return treemap_fig, stacked_bar_fig
 
-
 @app.callback(
     [
         Output("store-treemap1", "data"),
         Output("store-scatter1", "data"),
+        Output("bar-selected-data", "data"),
     ],
     [
         Input("stacked-bar-chart", "clickData"),
@@ -194,6 +194,7 @@ def update_dependent_charts(
         State("incident-filter-dropdown", "value"),
         State("kpi-select-dropdown", "value"),
         State("state-dropdown", "value"),
+        State("bar-selected-data", "data"),
     ],
     prevent_initial_call=True,
 )
@@ -205,8 +206,10 @@ def update_graphs_on_barchart_click(
     incident_types,
     kpi,
     selected_state,
+    selected_data,
 ):
     print(">>> update_graphs_on_barchart_click triggered")
+
     if not barchart_clickData:
         print(">>> Preventing update_graphs_on_barchart_click due to no clickData")
         raise dash.exceptions.PreventUpdate
@@ -215,20 +218,29 @@ def update_graphs_on_barchart_click(
     filtered_data = filter_data_cached(data, start_date, end_date, incident_types)
 
     # Handle filtering based on the clicked bar
+    new_outcome = None
     if "points" in barchart_clickData:
         clicked_outcome = barchart_clickData["points"][0]["y"]  # Incident outcome
-        filtered_data = filtered_data[
-            filtered_data["incident_outcome"] == clicked_outcome
-        ]
+
+        # Check if the same outcome was clicked consecutively
+        if selected_data == clicked_outcome:
+            print(">>> Resetting incident_outcome filter due to double-click or same point click")
+            new_outcome = None
+        else:
+            print(clicked_outcome)
+            filtered_data = filtered_data[
+                filtered_data["incident_outcome"] == clicked_outcome
+            ]
+            new_outcome = clicked_outcome  # Update the last clicked outcome
 
     # Prepare data and figures for treemap and scatter plot
-    treemap_data = prepare_treemap_data_cached(filtered_data, selected_state, kpi)
+    treemap_data = prepare_treemap_data_cached(filtered_data, selected_state, "incident_rate")
     scatter_plot_data = prepare_scatter_plot_cached(filtered_data, selected_state)
 
-    treemap_fig = create_treemap(treemap_data, kpi, selected_state)
+    treemap_fig = create_treemap(treemap_data, "incident_rate", selected_state)
     scatter_plot_fig = create_scatter_plot(scatter_plot_data, selected_state)
 
-    return treemap_fig, scatter_plot_fig
+    return treemap_fig, scatter_plot_fig, new_outcome
 
 
 @app.callback(

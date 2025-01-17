@@ -20,6 +20,7 @@ main_layout = html.Div(
         dcc.Store(id="store-treemap2"),
         dcc.Store(id="store-bar2"),
         dcc.Store(id="store-scatter2"),
+        dcc.Store(id="bar-selected-data", data=None),
         html.Link(rel="stylesheet", href="data:text/css,body { margin: 0; }"),
         html.Div(
             style={

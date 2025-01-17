@@ -1,7 +1,6 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.colors import sequential
 from plotly_resampler import FigureResampler
 
 from src.mappings import dropdown_options, state_map
@@ -203,45 +202,107 @@ def create_map(df, kpi="incident_rate", selected_state=None):
     return fig
 
 
+# def create_treemap(df, kpi, selected_state):
+#     kpi_name = dropdown_options[kpi]
+
+#     # Adjust the 'values' column according to Stevens' Power Law
+#     n = 0.7  # Stevens' Power Law exponent for area perception
+#     df["scaled_count"] = df["count"] ** (1 / n)  # Compensatory scaling
+
+#     # Create the treemap with scaled values
+#     fig = px.treemap(
+#         df,
+#         path=[px.Constant("US Market"), "soc_description_1", "soc_description_2"],
+#         title=f"{kpi_name} across different {state_map[selected_state]} jobs",
+#         values="scaled_count",  # Use scaled values for area
+#         color="metric",
+#         custom_data="count",
+#         color_continuous_scale=sequential.Oranges,
+#         maxdepth=2,
+#     )
+
+#     # Add the original count to customdata as a numpy array
+#     fig.data[0].customdata = df["count"].to_numpy()
+
+#     # Update hovertemplate to show the original 'count'
+#     fig.update_traces(
+#         marker=dict(
+#             cornerradius=1,
+#             line=dict(
+#                 color="rgba(0, 0, 0, 0.4)",  # Border color
+#                 width=1,  # Border thickness
+#             ),
+#         ),
+#         hovertemplate=(
+#             "<b>Job description:</b> %{label}<br>"
+#             "<b>Number of workers:</b> %{custom_data}<br>"  # Access customdata directly
+#             f"<b>{kpi_name}:" + "</b> %{color}<extra></extra>"
+#         ),
+#     )
+
+#     return fig
+
+
 def create_treemap(df, kpi, selected_state):
     kpi_name = dropdown_options[kpi]
+    n = 0.7
+    df["scaled_count"] = df["count"] ** (1 / n)
 
-    # Adjust the 'values' column according to Stevens' Power Law
-    n = 0.7  # Stevens' Power Law exponent for area perception
-    df["scaled_count"] = df["count"] ** (1 / n)  # Compensatory scaling
-
-    # Create the treemap with scaled values
-    fig = px.treemap(
-        df,
-        path=[px.Constant("US Market"), "soc_description_1", "soc_description_2"],
-        title=f"{kpi_name} across different {state_map[selected_state]} jobs",
-        values="scaled_count",  # Use scaled values for area
-        color="metric",
-        custom_data="count",
-        color_continuous_scale=sequential.Oranges,
-        maxdepth=2,
+    # Precompute aggregates at level 1
+    df_level1 = (
+        df.groupby("soc_description_1", as_index=False)
+        .agg({"count": "sum", "metric": "mean", "scaled_count": "sum"})
     )
 
-    # Add the original count to customdata as a numpy array
-    fig.data[0].customdata = df["count"].to_numpy()
+    labels = ["US Market"]
+    parents = [""]
+    values = [df_level1["scaled_count"].sum()]
+    customdata = [df_level1["count"].sum()]
+    colors = [df["metric"].mean()]  # Root node color (average metric)
 
-    # Update hovertemplate to show the original 'count'
-    fig.update_traces(
-        marker=dict(
-            cornerradius=1,
-            line=dict(
-                color="rgba(0, 0, 0, 0.4)",  # Border color
-                width=1,  # Border thickness
+    # Level 1 nodes
+    for _, row in df_level1.iterrows():
+        labels.append(row["soc_description_1"])
+        parents.append("US Market")
+        values.append(row["scaled_count"])
+        customdata.append(row["count"])
+        colors.append(row["metric"])  # Use mean metric value for this level 1 node
+
+        # Level 2 (leaf) nodes for each level1
+        subset = df[df["soc_description_1"] == row["soc_description_1"]]
+        for _, leaf in subset.iterrows():
+            labels.append(leaf["soc_description_2"])
+            parents.append(row["soc_description_1"])
+            values.append(leaf["scaled_count"])
+            customdata.append(leaf["count"])
+            colors.append(leaf["metric"])  # Use metric value for leaf nodes
+
+    fig = go.Figure(
+        go.Treemap(
+            labels=labels,
+            parents=parents,
+            values=values,
+            customdata=customdata,
+            marker=dict(
+                colors=colors,  # Add color values
+                colorscale="Oranges",  # Use the 'Oranges' color scale
+                colorbar=dict(title=kpi_name),  # Add a colorbar
             ),
-        ),
-        hovertemplate=(
-            "<b>Job description:</b> %{label}<br>"
-            "<b>Number of workers:</b> %{custom_data}<br>"  # Access customdata directly
-            f"<b>{kpi_name}:" + "</b> %{color}<extra></extra>"
-        ),
+            hovertemplate=(
+                "<b>Job description:</b> %{label}<br>"
+                "<b>Number of workers:</b> %{customdata}<br>"
+                f"<b>{kpi_name}:" + "</b> %{color:.2f}<extra></extra>"
+            ),
+            branchvalues="total",
+        )
+    )
+
+    fig.update_layout(
+        title=f"{kpi_name} across different {state_map[selected_state]} jobs",
     )
 
     return fig
+
 
 
 def create_splom(df, kpi, selected_state=None):
@@ -391,7 +452,7 @@ def create_stacked_bar_chart(df, selected_state):
                 ),
                 hovertemplate=(
                     "<b>Incident Outcome:</b> %{y}<br>"
-                    "<b>Establishment Type:</b> %{name}<br>"
+                    # "<b>Establishment Type:</b> %{name}<br>"
                     "<b>Proportion of Incidents:</b> %{text}<extra></extra>"
                 ),
             )
