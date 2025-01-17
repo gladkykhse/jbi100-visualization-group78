@@ -13,8 +13,7 @@ def transform_kpi_names(s):
 
 def preprocess_radar_data(df):
     df["formatted_kpi"] = df["kpi"].apply(transform_kpi_names)
-    df_closed = pd.concat([df, df.iloc[[0]]], ignore_index=True)
-    return df_closed
+    return pd.concat([df, df.iloc[[0]]], ignore_index=True)
 
 
 def create_radar_chart(df, dropdown_state):
@@ -33,7 +32,7 @@ def create_radar_chart(df, dropdown_state):
             fillcolor=px.colors.qualitative.Plotly[0],
             name=f"{state_map[dropdown_state]} Metric Values",
             customdata=df_closed["value"],
-            opacity=0.8,
+            opacity=0.7,
             hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata:.2f}<br>",
         )
     )
@@ -47,7 +46,7 @@ def create_radar_chart(df, dropdown_state):
             name="Average Metric Values Across All States",
             customdata=df_closed["mean_value"],
             fillcolor=px.colors.qualitative.Plotly[4],
-            opacity=0.8,
+            opacity=0.7,
             hovertemplate="<b>Metric Name</b>: %{theta}<br><b>Metric Score</b>: %{customdata:.2f}<br>",
         )
     )
@@ -122,9 +121,7 @@ def create_map(df, kpi="incident_rate", selected_state=None):
     max_kpi_state = df.loc[df[kpi].idxmax()]
     min_kpi_state = df.loc[df[kpi].idxmin()]
     kpi_naming = transform_kpi_names(kpi)
-    max_state_text = (
-        f"<b>Highest {kpi_naming}</b>: {state_map[max_kpi_state['state_code']]} ({max_kpi_state[kpi]:.2f})"
-    )
+    max_state_text = f"<b>Highest {kpi_naming}</b>: {state_map[max_kpi_state['state_code']]} ({max_kpi_state[kpi]:.2f})"
     min_state_text = f"<b>Lowest {kpi_naming}</b>: {state_map[min_kpi_state['state_code']]} ({min_kpi_state[kpi]:.2f})"
 
     # Create the base map
@@ -141,7 +138,9 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                 marker_line_color=border_color,  # Default boundary lines
                 colorbar=dict(title=dict(text=kpi_name)),
                 hovertemplate="<b>State:</b> %{text}<br><b>Value:</b> %{z:.2f}<extra></extra>",
-                text=df["state_code"].map(state_map),  # Add state names to the hover info
+                text=df["state_code"].map(
+                    state_map
+                ),  # Add state names to the hover info
                 hoverinfo="text+z",
             )
         )
@@ -165,7 +164,9 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                     autocolorscale=False,
                     marker_line_color="rgb(99, 110, 250)",  # Red border for the selected state
                     marker_line_width=2,  # Thicker border
-                    text=df["state_code"].map(state_map),  # Add state names to the hover info
+                    text=df["state_code"].map(
+                        state_map
+                    ),  # Add state names to the hover info
                     hovertemplate="<b>State:</b> %{text}<br><b>Value:</b> %{z:.2f}<extra></extra>",
                     showscale=False,  # No color scale for the highlight layer
                 )
@@ -253,7 +254,9 @@ def create_splom(df, kpi, selected_state=None):
         # selected_state_data = df[df["state_code"] == selected_state].iloc[0]
 
         # Prepare constraintrange for each dimension
-        constrained_state = df["tickvals"].loc[df["state_code"] == selected_state].values[0]
+        constrained_state = (
+            df["tickvals"].loc[df["state_code"] == selected_state].values[0]
+        )
 
     else:
         constrained_state = None  # No filtering if no state is selected
@@ -276,7 +279,9 @@ def create_splom(df, kpi, selected_state=None):
                     values=df["tickvals"],
                     tickvals=df["tickvals"],
                     ticktext=df["state_code"].map(state_map).tolist(),
-                    constraintrange=[constrained_state - 0.5, constrained_state + 0.5] if constrained_state else None,
+                    constraintrange=[constrained_state - 0.5, constrained_state + 0.5]
+                    if constrained_state
+                    else None,
                 ),
                 dict(
                     label=dropdown_options[kpi],
@@ -327,7 +332,7 @@ def create_scatter_plot(df, selected_state):
             mode="markers",
             marker=dict(
                 size=10,  # Set a fixed size for all points
-                opacity=0.8,  # Set opacity
+                opacity=0.7,  # Set opacity
                 color=df["case_number"],  # Use `case_number` for coloring
                 colorscale="Viridis",  # Choose a continuous colorscale
                 showscale=True,  # Display colorbar
@@ -377,7 +382,8 @@ def create_stacked_bar_chart(df, selected_state):
                 x=df[establishment],
                 name=establishment,
                 orientation="h",
-                text=(df[establishment] * 100).round(1).astype(str) + "%",  # Display percentages
+                text=(df[establishment] * 100).round(1).astype(str)
+                + "%",  # Display percentages
                 textposition="inside",
                 marker=dict(
                     color=colors[i % len(colors)],  # Cycle through Safe colors
@@ -401,7 +407,9 @@ def create_stacked_bar_chart(df, selected_state):
         plot_bgcolor="white",
         margin=dict(l=120, r=10, t=140, b=80),
         showlegend=True,
-        legend=dict(title="Establishment Type", orientation="h", x=0.5, xanchor="center", y=-0.4),
+        legend=dict(
+            title="Establishment Type", orientation="h", x=0.5, xanchor="center", y=-0.4
+        ),
         dragmode=False,
     )
     return fig

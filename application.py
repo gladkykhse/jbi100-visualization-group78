@@ -2,22 +2,35 @@
 import os
 
 import dash
-from dash import dcc, html
+from dash import dcc, html, no_update
 from dash.dependencies import Input, Output, State
 from flask import Flask
 from flask_caching import Cache
 
-from src.data import (data, filter_data, prepare_radar_data,
-                      prepare_scatter_plot, prepare_stacked_bar_chart,
-                      prepare_state_data, prepare_treemap_data)
+from src.data import (
+    data,
+    filter_data,
+    prepare_radar_data,
+    prepare_scatter_plot,
+    prepare_stacked_bar_chart,
+    prepare_state_data,
+    prepare_treemap_data,
+)
 from src.layouts import main_layout
 from src.mappings import dropdown_options_rev
-from src.visualizations import (create_map, create_radar_chart,
-                                create_scatter_plot, create_splom,
-                                create_stacked_bar_chart, create_treemap)
+from src.visualizations import (
+    create_map,
+    create_radar_chart,
+    create_scatter_plot,
+    create_splom,
+    create_stacked_bar_chart,
+    create_treemap,
+)
 
 application = Flask(__name__)
-cache = Cache(application, config={"CACHE_TYPE": "SimpleCache"})  # Use "RedisCache" for production
+cache = Cache(
+    application, config={"CACHE_TYPE": "SimpleCache"}
+)  # Use "RedisCache" for production
 
 app = dash.Dash(__name__, server=application)
 app.layout = main_layout
@@ -44,8 +57,7 @@ def filter_data_cached(df, start_date, end_date, incident_types):
 
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
 def prepare_scatter_plot_cached(df, state_code):
-    scatter_plot_data = prepare_scatter_plot(df, state_code)
-    return scatter_plot_data
+    return prepare_scatter_plot(df, state_code)
 
 
 @cache.memoize(timeout=600)  # Cache result for 10 minutes
@@ -77,9 +89,7 @@ def update_selected_state(click_data, current_state):
     print(">>> update_selected_state triggered")
     if click_data:
         clicked_state = click_data["points"][0]["location"]  # Get clicked state
-        if clicked_state == current_state:
-            return current_state
-        return clicked_state  # Update to the newly clicked state
+        return current_state if clicked_state == current_state else clicked_state
     return current_state  # Retain the current state if no new click
 
 
@@ -89,12 +99,11 @@ def update_selected_state(click_data, current_state):
 )
 def update_on_radar_click(click_data):
     print(">>> update_on_radar_click triggered")
-    if click_data and "points" in click_data:
-        # Retrieve the metric name from the clicked radar segment
-        selected_metric = dropdown_options_rev.get(click_data["points"][0]["theta"], "incident_rate")
-    else:
-        selected_metric = "incident_rate"
-    return selected_metric
+    return (
+        dropdown_options_rev.get(click_data["points"][0]["theta"], no_update)
+        if click_data and "points" in click_data
+        else no_update
+    )
 
 
 @app.callback(
@@ -139,22 +148,26 @@ def update_dependent_charts(
         if x_min is not None and x_max is not None:
             filtered_data = filtered_data[
                 (
-                    filtered_data["time_started_work"].dt.hour + filtered_data["time_started_work"].dt.minute / 60
+                    filtered_data["time_started_work"].dt.hour
+                    + filtered_data["time_started_work"].dt.minute / 60
                     >= float(x_min)
                 )
                 & (
-                    filtered_data["time_started_work"].dt.hour + filtered_data["time_started_work"].dt.minute / 60
+                    filtered_data["time_started_work"].dt.hour
+                    + filtered_data["time_started_work"].dt.minute / 60
                     <= float(x_max)
                 )
             ]
         if y_min is not None and y_max is not None:
             filtered_data = filtered_data[
                 (
-                    filtered_data["time_of_incident"].dt.hour + filtered_data["time_of_incident"].dt.minute / 60
+                    filtered_data["time_of_incident"].dt.hour
+                    + filtered_data["time_of_incident"].dt.minute / 60
                     >= float(y_min)
                 )
                 & (
-                    filtered_data["time_of_incident"].dt.hour + filtered_data["time_of_incident"].dt.minute / 60
+                    filtered_data["time_of_incident"].dt.hour
+                    + filtered_data["time_of_incident"].dt.minute / 60
                     <= float(y_max)
                 )
             ]
@@ -204,7 +217,9 @@ def update_graphs_on_barchart_click(
     # Handle filtering based on the clicked bar
     if "points" in barchart_clickData:
         clicked_outcome = barchart_clickData["points"][0]["y"]  # Incident outcome
-        filtered_data = filtered_data[filtered_data["incident_outcome"] == clicked_outcome]
+        filtered_data = filtered_data[
+            filtered_data["incident_outcome"] == clicked_outcome
+        ]
 
     # Prepare data and figures for treemap and scatter plot
     treemap_data = prepare_treemap_data_cached(filtered_data, selected_state, kpi)
@@ -254,7 +269,9 @@ def update_graphs_with_treemap_click(
     if "points" in treemap_clickData:
         print(treemap_clickData)
         clicked_label = treemap_clickData["points"][0]["label"]  # Get clicked label
-        clicked_parent = treemap_clickData["points"][0].get("parent", None)  # Get parent label if present
+        clicked_parent = treemap_clickData["points"][0].get(
+            "parent", None
+        )  # Get parent label if present
         # Filter data based on the clicked region
         if clicked_parent and clicked_parent != "US Market":
             filtered_data = filtered_data[
@@ -262,7 +279,9 @@ def update_graphs_with_treemap_click(
                 & (filtered_data["soc_description_2"] == clicked_label)
             ]
         elif clicked_label != "US Market":
-            filtered_data = filtered_data[(filtered_data["soc_description_1"] == clicked_label)]
+            filtered_data = filtered_data[
+                (filtered_data["soc_description_1"] == clicked_label)
+            ]
 
     # Prepare data and figures for stacked bar chart and scatter plot
     stacked_bar_data = prepare_stacked_bar_chart_cached(filtered_data, selected_state)
@@ -299,7 +318,11 @@ def update_scatter_figure(scatter_figure_dict1, scatter_figure_dict2):
     if scatter_figure_dict1 is None and scatter_figure_dict2 is None:
         print(">>> Preventing update_scatter_figure due to None data")
         raise dash.exceptions.PreventUpdate
-    return scatter_figure_dict1 if scatter_figure_dict1 is not None else scatter_figure_dict2
+    return (
+        scatter_figure_dict1
+        if scatter_figure_dict1 is not None
+        else scatter_figure_dict2
+    )
 
 
 @app.callback(
@@ -313,7 +336,11 @@ def update_treemap_figure(treemap_figure_dict1, treemap_figure_dict2):
     if treemap_figure_dict1 is None and treemap_figure_dict2 is None:
         print(">>> Preventing update_treemap_figure due to None data")
         raise dash.exceptions.PreventUpdate
-    return treemap_figure_dict1 if treemap_figure_dict1 is not None else treemap_figure_dict2
+    return (
+        treemap_figure_dict1
+        if treemap_figure_dict1 is not None
+        else treemap_figure_dict2
+    )
 
 
 @app.callback(
@@ -382,7 +409,9 @@ def update_tab_contents(
                                 dcc.Loading(
                                     children=[
                                         dcc.Graph(
-                                            figure=create_radar_chart(radar_chart_data, dropdown_state),
+                                            figure=create_radar_chart(
+                                                radar_chart_data, dropdown_state
+                                            ),
                                             id="radar-chart",
                                         ),
                                     ]
@@ -395,7 +424,9 @@ def update_tab_contents(
                                 dcc.Loading(
                                     children=[
                                         dcc.Graph(
-                                            figure=create_map(map_data, kpi, dropdown_state),
+                                            figure=create_map(
+                                                map_data, kpi, dropdown_state
+                                            ),
                                             id="map-container",
                                         ),
                                     ]
@@ -436,7 +467,9 @@ def update_tab_contents(
             dropdown_state,
             "incident_rate",
         )
-        stacked_bar_chart = prepare_stacked_bar_chart_cached(filtered_data, dropdown_state)
+        stacked_bar_chart = prepare_stacked_bar_chart_cached(
+            filtered_data, dropdown_state
+        )
         metric_analysis_content = html.Div(
             style={
                 "display": "flex",
@@ -497,7 +530,9 @@ def update_tab_contents(
                             dcc.Loading(
                                 children=[
                                     dcc.Graph(
-                                        figure=create_stacked_bar_chart(stacked_bar_chart, dropdown_state),
+                                        figure=create_stacked_bar_chart(
+                                            stacked_bar_chart, dropdown_state
+                                        ),
                                         id="stacked-bar-chart",
                                         style={"height": "100%", "width": "100%"},
                                     )
@@ -519,6 +554,6 @@ def update_tab_contents(
 
 
 if __name__ == "__main__":
-    application.run(debug=True,
-                    host=os.environ.get("HOST", None),
-                    port=os.environ.get("PORT", None))
+    application.run(
+        debug=True, host=os.environ.get("HOST", None), port=os.environ.get("PORT", None)
+    )

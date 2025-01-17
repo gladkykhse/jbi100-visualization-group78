@@ -2,8 +2,8 @@ dropdown_options = {
     "incident_rate": "Incident Rate",
     "fatality_rate": "Fatality Rate",
     "lost_workday_rate": "Lost Workday Rate per Injury",
-    "severity_index": "Severity Index",
-    "death_to_incident": "Death-to-Incident Ratio",
+    "workforce_exposure": "Workforce Exposure",
+    # "death_to_incident": "Death-to-Incident Ratio",
     "safety_score": "Aggregated Safety Score",
 }
 
@@ -12,7 +12,7 @@ dropdown_options_rev = {
     "Fatality Rate": "fatality_rate",
     "Lost Workday Rate": "lost_workday_rate",
     "Severity Index": "severity_index",
-    "Death To Incident": "death_to_incident",
+    # "Death To Incident": "death_to_incident",
     "Safety Score": "safety_score",
 }
 
