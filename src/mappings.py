@@ -68,7 +68,3 @@ state_map = {
     "WV": "West Virginia",
     "WY": "Wyoming",
 }
-
-state_code_map = {value: index + 1 for index, value in enumerate(dict(sorted(state_map.items(), reverse=True)).keys())}
-
-reverse_dropdown_options = {v: k for k, v in dropdown_options.items()}

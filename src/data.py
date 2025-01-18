@@ -3,60 +3,6 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-### IN CASE OF NOT LOADING DATAFRAME
-
-
-# def reduce_mem_usage(df):
-#     """iterate through all the columns of a dataframe and modify the data type
-#     to reduce memory usage.
-#     """
-#     start_mem = df.memory_usage().sum() / 1024**2
-#     print("Memory usage of dataframe is {:.2f} MB".format(start_mem))
-
-#     for col in df.columns:
-#         with contextlib.suppress(Exception):
-#             col_type = df[col].dtype
-
-#             if col_type is not object:
-#                 c_min = df[col].min()
-#                 c_max = df[col].max()
-#                 if str(col_type).startswith("int"):
-#                     if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
-#                         df[col] = df[col].astype(np.int8)
-#                     elif (
-#                         c_min > np.iinfo(np.int16).min
-#                         and c_max < np.iinfo(np.int16).max
-#                     ):
-#                         df[col] = df[col].astype(np.int16)
-#                     elif (
-#                         c_min > np.iinfo(np.int32).min
-#                         and c_max < np.iinfo(np.int32).max
-#                     ):
-#                         df[col] = df[col].astype(np.int32)
-#                     elif (
-#                         c_min > np.iinfo(np.int64).min
-#                         and c_max < np.iinfo(np.int64).max
-#                     ):
-#                         df[col] = df[col].astype(np.int64)
-#                 elif (
-#                         c_min > np.finfo(np.float16).min
-#                         and c_max < np.finfo(np.float16).max
-#                     ):
-#                     df[col] = df[col].astype(np.float16)
-#                 elif (
-#                     c_min > np.finfo(np.float32).min
-#                     and c_max < np.finfo(np.float32).max
-#                 ):
-#                     df[col] = df[col].astype(np.float32)
-#                 else:
-#                     df[col] = df[col].astype(np.float64)
-#     end_mem = df.memory_usage().sum() / 1024**2
-#     print("Memory usage after optimization is: {:.2f} MB".format(end_mem))
-#     print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
-#     print(df.info())
-#     return df
-
-
 data = pd.read_parquet("datasets/processed_data copy.parquet")
 
 
@@ -105,13 +51,6 @@ def compute_agg_fatality_rate(df, column=None):
         .reset_index()
     )
 
-    # Aggregate deduplicated company-level data
-    # company_data = (
-    #     deduplicated.groupby(agg_cols, observed=False)
-    #     .agg(total_hours_worked=("total_hours_worked", "sum"))
-    #     .reset_index()
-    # )
-
     # Merge and calculate fatality rate
     # temp = injury_data.merge(company_data, on=agg_cols, how="left")
     temp["fatality_rate"] = np.where(
@@ -146,26 +85,6 @@ def compute_agg_lost_workday_rate(df, column=None):
         0,
     )
     return injury_data[agg_cols + ["lost_workday_rate"]]
-
-
-# def compute_death_to_incident_ratio(df, column=None):
-#     # No adjustment needed as all fields are injury-level data
-#     agg_cols = ["state_code", column] if column is not None else ["state_code"]
-#     temp = (
-#         df.groupby(agg_cols, observed=False)
-#         .agg(
-#             death=("death", "sum"),
-#             case_number=("case_number", "count"),
-#         )
-#         .reset_index()
-#     )
-
-#     temp["death_to_incident"] = np.where(
-#         temp["case_number"] > 0,
-#         temp["death"] / temp["case_number"] * 1e4,
-#         0,
-#     )
-#     return temp[agg_cols + ["death_to_incident"]]
 
 
 def compute_workforce_exposure(df, column=None):

@@ -5,6 +5,12 @@ from plotly_resampler import FigureResampler
 
 from src.mappings import dropdown_options, state_map
 
+font_settings = {
+    "size": 16,
+    # "style": "italic",  # Italic text
+    "weight": "bold",  # Bold text
+}
+
 
 def transform_kpi_names(s):
     return " ".join(map(str.capitalize, s.split("_")))
@@ -64,9 +70,10 @@ def create_radar_chart(df, dropdown_state):
 
     # Update chart layout
     fig.update_layout(
+        margin={"r": 0, "t": 30, "l": 0, "b": 80},
         title={
             "text": f"{state_map[dropdown_state]} Safety Profile",
-            "y": 0.98,  # Push it a bit down from the top
+            "font": font_settings,
         },
         polar=dict(
             radialaxis=dict(
@@ -76,36 +83,13 @@ def create_radar_chart(df, dropdown_state):
         clickmode="event+select",
         showlegend=True,
         legend=dict(
-            orientation="h",  # Horizontal legend
+            title="Legend",
+            orientation="v",  # Horizontal legend
             yanchor="bottom",  # Align the legend's bottom with the top of the plot
             y=1.05,  # Position above the chart
             xanchor="center",  # Center-align the legend
-            x=0.5,  # Center position horizontally
+            x=1,  # Center position horizontally
         ),
-    )
-
-    return fig
-
-
-def create_grouped_bar_chart(df, feature, kpi):
-    kpi_name = dropdown_options[kpi]  # Get the KPI name for the y-axis label
-    df[kpi] = df[kpi].round(2)
-    # Create the bar chart
-    fig = px.bar(
-        df,
-        x=feature,
-        y=kpi,
-        title=f"{kpi_name} by {feature}",
-        # text_auto=True,  # Add y-values as data labels on the bars
-    )
-    fig.update_traces(
-        texttemplate="%{y:.2f}",  # Display y-values rounded to 2 decimal places
-        # textposition="inside",  # Position the labels outside the bars
-    )
-    # Update layout
-    fig.update_layout(
-        yaxis_title=kpi_name,  # Set the y-axis label to the KPI name
-        xaxis_title=feature,  # Set the x-axis label
     )
 
     return fig
@@ -157,8 +141,8 @@ def create_map(df, kpi="incident_rate", selected_state=None):
                     zmin=0,  # Set the minimum value to 0 to avoid issues with the color scale
                     locationmode="USA-states",
                     colorscale=[
-                        [0, "rgba(99, 110, 250, 0.2)"],
-                        [1, "rgba(99, 110, 250, 0.4)"],
+                        [0, "rgba(99, 110, 250, 0.1)"],
+                        [1, "rgba(99, 110, 250, 0.2)"],
                     ],
                     autocolorscale=False,
                     marker_line_color="rgb(99, 110, 250)",  # Red border for the selected state
@@ -185,7 +169,7 @@ def create_map(df, kpi="incident_rate", selected_state=None):
     )
 
     fig.update_layout(
-        title_text=f"{kpi_name} by State",
+        title={"text": f"{kpi_name} by State", "font": font_settings},
         margin={"r": 0, "t": 30, "l": 0, "b": 80},
         clickmode="event+select",  # Enable click events
         geo=dict(
@@ -195,52 +179,88 @@ def create_map(df, kpi="incident_rate", selected_state=None):
             lakecolor=background_color,
             bgcolor=background_color,
         ),
-        mapbox=dict(zoom=False),
-        dragmode=False,
         uirevision=True,
     )
     return fig
 
 
-# def create_treemap(df, kpi, selected_state):
-#     kpi_name = dropdown_options[kpi]
+def create_splom(df, kpi, selected_state=None):
+    fig = FigureResampler(go.Figure())
+    df = df.sort_values(by=kpi, ascending=True).copy()
+    df["tickvals"] = range(1, len(df) + 1)
+    # Check if a state is selected
+    if selected_state:
+        # Filter the dataframe for the selected state
+        # Prepare constraintrange for each dimension
+        constrained_state = (
+            df["tickvals"].loc[df["state_code"] == selected_state].values[0]
+        )
 
-#     # Adjust the 'values' column according to Stevens' Power Law
-#     n = 0.7  # Stevens' Power Law exponent for area perception
-#     df["scaled_count"] = df["count"] ** (1 / n)  # Compensatory scaling
+    else:
+        constrained_state = None  # No filtering if no state is selected
 
-#     # Create the treemap with scaled values
-#     fig = px.treemap(
-#         df,
-#         path=[px.Constant("US Market"), "soc_description_1", "soc_description_2"],
-#         title=f"{kpi_name} across different {state_map[selected_state]} jobs",
-#         values="scaled_count",  # Use scaled values for area
-#         color="metric",
-#         custom_data="count",
-#         color_continuous_scale=sequential.Oranges,
-#         maxdepth=2,
-#     )
+    # Add the Parallel Coordinates trace
+    fig.add_trace(
+        go.Parcoords(
+            line=dict(
+                color=df["injury_density"],
+                colorscale="Viridis",
+                showscale=True,
+                colorbar=dict(
+                    title="Injury per worker",
+                    titlefont=dict(size=14),
+                ),
+            ),
+            dimensions=[
+                dict(
+                    label="US State",
+                    values=df["tickvals"],
+                    tickvals=df["tickvals"],
+                    ticktext=df["state_code"].map(state_map).tolist(),
+                    constraintrange=[constrained_state - 0.5, constrained_state + 0.5]
+                    if constrained_state
+                    else None,
+                ),
+                dict(
+                    label=dropdown_options[kpi],
+                    values=df[kpi],
+                ),
+                dict(
+                    label="Average Deaths",
+                    values=df["death"],
+                ),
+                dict(
+                    label="Average Annual Hours Worked by Companies",
+                    values=df["total_hours_worked"],
+                ),
+                dict(
+                    label="Average Annual Employees",
+                    values=df["annual_average_employees_median"],
+                ),
+                dict(
+                    label="Average Days Away from Work",
+                    values=df["dafw_num_away"],
+                ),
+                dict(
+                    label="Average Days Job Transfer/Restriction",
+                    values=df["djtr_num_tr"],
+                ),
+            ],
+            unselected=dict(line=dict(color="gray", opacity=0.15)),
+        )
+    )
 
-#     # Add the original count to customdata as a numpy array
-#     fig.data[0].customdata = df["count"].to_numpy()
+    # Update layout
+    fig.update_layout(
+        margin={"r": 150, "t": 120, "l": 110, "b": 30},
+        height=700,
+        title={
+            "text": "Parallel Coordinates Plot of US States",
+            "font": font_settings,
+        },
+    )
 
-#     # Update hovertemplate to show the original 'count'
-#     fig.update_traces(
-#         marker=dict(
-#             cornerradius=1,
-#             line=dict(
-#                 color="rgba(0, 0, 0, 0.4)",  # Border color
-#                 width=1,  # Border thickness
-#             ),
-#         ),
-#         hovertemplate=(
-#             "<b>Job description:</b> %{label}<br>"
-#             "<b>Number of workers:</b> %{custom_data}<br>"  # Access customdata directly
-#             f"<b>{kpi_name}:" + "</b> %{color}<extra></extra>"
-#         ),
-#     )
-
-#     return fig
+    return fig
 
 
 def create_treemap(df, kpi, selected_state):
@@ -249,11 +269,9 @@ def create_treemap(df, kpi, selected_state):
     df["scaled_count"] = df["count"] ** (1 / n)
 
     # Precompute aggregates at level 1
-    df_level1 = (
-        df.groupby("soc_description_1", as_index=False)
-        .agg({"count": "sum", "metric": "mean", "scaled_count": "sum"})
+    df_level1 = df.groupby("soc_description_1", as_index=False).agg(
+        {"count": "sum", "metric": "mean", "scaled_count": "sum"}
     )
-
     labels = ["US Market"]
     parents = [""]
     values = [df_level1["scaled_count"].sum()]
@@ -298,85 +316,11 @@ def create_treemap(df, kpi, selected_state):
     )
 
     fig.update_layout(
-        title=f"{kpi_name} across different {state_map[selected_state]} jobs",
-    )
-
-    return fig
-
-
-
-def create_splom(df, kpi, selected_state=None):
-    fig = FigureResampler(go.Figure())
-    df = df.sort_values(by=kpi, ascending=True).copy()
-    df["tickvals"] = range(1, len(df) + 1)
-    # Check if a state is selected
-    if selected_state:
-        # Filter the dataframe for the selected state
-        # selected_state_data = df[df["state_code"] == selected_state].iloc[0]
-
-        # Prepare constraintrange for each dimension
-        constrained_state = (
-            df["tickvals"].loc[df["state_code"] == selected_state].values[0]
-        )
-
-    else:
-        constrained_state = None  # No filtering if no state is selected
-
-    # Add the Parallel Coordinates trace
-    fig.add_trace(
-        go.Parcoords(
-            line=dict(
-                color=df["injury_density"],
-                colorscale="Viridis",
-                showscale=True,
-                colorbar=dict(
-                    title="Injury per worker",
-                    titlefont=dict(size=14),
-                ),
-            ),
-            dimensions=[
-                dict(
-                    label="State Code",
-                    values=df["tickvals"],
-                    tickvals=df["tickvals"],
-                    ticktext=df["state_code"].map(state_map).tolist(),
-                    constraintrange=[constrained_state - 0.5, constrained_state + 0.5]
-                    if constrained_state
-                    else None,
-                ),
-                dict(
-                    label=dropdown_options[kpi],
-                    values=df[kpi],
-                ),
-                dict(
-                    label="Average Deaths",
-                    values=df["death"],
-                ),
-                dict(
-                    label="Average Hours Worked",
-                    values=df["total_hours_worked"],
-                ),
-                dict(
-                    label="Average Annual Employees",
-                    values=df["annual_average_employees_median"],
-                ),
-                dict(
-                    label="Average Days Away from Work",
-                    values=df["dafw_num_away"],
-                ),
-                dict(
-                    label="Average Days Job Transfer/Restriction",
-                    values=df["djtr_num_tr"],
-                ),
-            ],
-            unselected=dict(line=dict(color="gray", opacity=0.15)),
-        )
-    )
-
-    # Update layout
-    fig.update_layout(
-        height=700,
-        title="Parallel Coordinates Plot of US States",
+        margin={"r": 0, "t": 60, "l": 0, "b": 0},
+        title={
+            "text": f"Hierarchy of Job Categories by {kpi_name} in {state_map[selected_state]}",
+            "font": font_settings,
+        },
     )
 
     return fig
@@ -416,15 +360,19 @@ def create_scatter_plot(df, selected_state):
 
     # Update layout
     fig.update_layout(
-        title=f"Work Start vs Incident Time in {state_map[selected_state]}",
+        title={
+            "text": f"Work Start vs Incident Time in {state_map[selected_state]}",
+            "font": font_settings,
+        },
         xaxis=dict(
-            title="Time Started Work (Hours)",
+            title="Time Started Work (Hours in 24h format)",
             range=[-0.5, 24],  # Set min and max values for x-axis
         ),
         yaxis=dict(
-            title="Time of Incident (Hours)",
+            title="Time of Incident (Hours in 24h format)",
             range=[-0.5, 24],  # Set min and max values for y-axis
         ),
+        margin={"r": 0, "t": 60, "l": 0, "b": 0},
     )
     return fig
 
@@ -443,7 +391,7 @@ def create_stacked_bar_chart(df, selected_state):
                 x=df[establishment],
                 name=establishment,
                 orientation="h",
-                text=(df[establishment] * 100).round(1).astype(str)
+                text=(df[establishment] * 100).round(0).astype(int).astype(str)
                 + "%",  # Display percentages
                 textposition="inside",
                 marker=dict(
@@ -460,13 +408,16 @@ def create_stacked_bar_chart(df, selected_state):
 
     # Update layout
     fig.update_layout(
+        title={
+            "text": f"Distribution of Incident Outcomes by Establishment type in {state_map[selected_state]}",
+            "font": font_settings,
+        },
         barmode="stack",
-        title=f"Distribution of Incident Outcomes by Establishment type in {state_map[selected_state]}",
         xaxis=dict(title="Proportion of Incidents", tickformat=".0%"),
         yaxis=dict(title="Incident Outcome"),
         paper_bgcolor="white",
         plot_bgcolor="white",
-        margin=dict(l=120, r=10, t=140, b=80),
+        margin={"r": 0, "t": 60, "l": 0, "b": 0},
         showlegend=True,
         legend=dict(
             title="Establishment Type", orientation="h", x=0.5, xanchor="center", y=-0.4

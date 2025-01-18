@@ -30,9 +30,14 @@ from src.visualizations import (
 application = Flask(__name__)
 cache = Cache(
     application, config={"CACHE_TYPE": "SimpleCache"}
-)  # Use "RedisCache" for production
+) 
 
-app = dash.Dash(__name__, server=application, title="US Workplace Safety Tracker", update_title='Updating data...')
+app = dash.Dash(
+    __name__,
+    server=application,
+    title="US Workplace Safety Tracker",
+    update_title="Updating data...",
+)
 app.layout = main_layout
 
 
@@ -181,6 +186,7 @@ def update_dependent_charts(
 
     return treemap_fig, stacked_bar_fig
 
+
 @app.callback(
     [
         Output("store-treemap1", "data"),
@@ -224,7 +230,9 @@ def update_graphs_on_barchart_click(
 
         # Check if the same outcome was clicked consecutively
         if selected_data == clicked_outcome:
-            print(">>> Resetting incident_outcome filter due to double-click or same point click")
+            print(
+                ">>> Resetting incident_outcome filter due to double-click or same point click"
+            )
             new_outcome = None
         else:
             print(clicked_outcome)
@@ -234,7 +242,9 @@ def update_graphs_on_barchart_click(
             new_outcome = clicked_outcome  # Update the last clicked outcome
 
     # Prepare data and figures for treemap and scatter plot
-    treemap_data = prepare_treemap_data_cached(filtered_data, selected_state, "incident_rate")
+    treemap_data = prepare_treemap_data_cached(
+        filtered_data, selected_state, "incident_rate"
+    )
     scatter_plot_data = prepare_scatter_plot_cached(filtered_data, selected_state)
 
     treemap_fig = create_treemap(treemap_data, "incident_rate", selected_state)
