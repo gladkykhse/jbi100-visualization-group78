@@ -32,7 +32,7 @@ cache = Cache(
     application, config={"CACHE_TYPE": "SimpleCache"}
 )  # Use "RedisCache" for production
 
-app = dash.Dash(__name__, server=application)
+app = dash.Dash(__name__, server=application, title="US Workplace Safety Tracker", update_title='Updating data...')
 app.layout = main_layout
 
 

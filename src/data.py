@@ -219,16 +219,11 @@ def compute_agg_safety_score(df, column=None):
     #     on=["state_code"] + ([column] if column else []),
     #     how="left",
     # )
-    stats["safety_score"] = (
+    stats["danger_score"] = (
         2.38 * stats["incident_rate"]
         + 3.33 * stats["fatality_rate"]
         + 0.37 * stats["lost_workday_rate"]
         + 1.4 * stats["workforce_exposure"]
-        #         1.5 * stats["incident_rate"]
-        # + 0.9 * stats["fatality_rate"]
-        # + 0.25 * stats["lost_workday_rate"]
-        # + 1 * stats["workforce_exposure"]
-        # + 1 * stats["death_to_incident"]
     )
     return stats
 
@@ -239,7 +234,7 @@ kpi_name_function_mapping = {
     "lost_workday_rate": compute_agg_lost_workday_rate,
     "workforce_exposure": compute_workforce_exposure,
     # "death_to_incident": compute_death_to_incident_ratio,
-    "safety_score": compute_agg_safety_score,
+    "danger_score": compute_agg_safety_score,
 }
 
 region_safety_score = compute_agg_safety_score(data)
@@ -319,8 +314,7 @@ def prepare_radar_data(df, state_code):
         "fatality_rate",
         "lost_workday_rate",
         "workforce_exposure",
-        # "death_to_incident",
-        "safety_score",
+        "danger_score",
     ]
     metric_values = radar_region_safety_score.loc[
         radar_region_safety_score["state_code"] == state_code, metrics

@@ -32,7 +32,7 @@ main_layout = html.Div(
             },
             children=[
                 html.H1(
-                    "Work-related injuries dashboard",
+                    "US Workplace Safety Tracker",
                     style={
                         "margin": "0",
                         "fontSize": "2em",
@@ -87,7 +87,6 @@ main_layout = html.Div(
                                     options=dropdown_options,
                                     value="incident_rate",
                                     placeholder="Select KPI",
-                                    optionHeight=50,
                                     style={"width": "100%"},
                                     clearable=False,
                                 ),
@@ -140,7 +139,7 @@ main_layout = html.Div(
                             value="state_analysis_tab",
                             children=[
                                 dcc.Tab(
-                                    label="State Analysis",
+                                    label="State Performance Overview",
                                     value="state_analysis_tab",
                                     children=[
                                         html.Div(
@@ -150,7 +149,7 @@ main_layout = html.Div(
                                     ],
                                 ),
                                 dcc.Tab(
-                                    label="Metric Analysis",
+                                    label="In-Depth State Insights",
                                     value="metric_analysis_tab",
                                     children=[
                                         html.Div(
